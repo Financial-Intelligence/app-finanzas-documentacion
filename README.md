@@ -10,11 +10,13 @@ Repositorio de documentacion y arquitectura del sistema financiero.
 - [Flujos principales](docs/04_flujos_principales.md)
 - [Decisiones de arquitectura](docs/05_decisiones_arquitectura.md)
 - [Riesgos y pendientes](docs/06_riesgos_y_pendientes.md)
+- [Arquitectura base del sistema](docs/07_arquitectura_base_sistema.md)
 
 ## Diagramas visuales
 
 - [Indice de diagramas](docs/diagrams/README.md)
 - [ERD visual](docs/diagrams/erd/README.md)
+- [ERD completo del sistema](docs/diagrams/erd/sistema_completo.md)
 - [UML visual](docs/diagrams/uml/README.md)
 - [Secuencias visuales](docs/diagrams/uml/secuencias/README.md)
 - [Flujos visuales](docs/diagrams/flujos/README.md)
@@ -26,4 +28,3 @@ Repositorio de documentacion y arquitectura del sistema financiero.
 - [Modelo fisico](docs/database/03_modelo_fisico.md)
 - [Diccionario de datos](docs/database/04_diccionario_datos.md)
 - [Relaciones y cardinalidades](docs/database/05_relaciones_cardinalidades.md)
-

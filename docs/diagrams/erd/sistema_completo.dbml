@@ -1,0 +1,235 @@
+// Arquitectura base completa del sistema financiero.
+// Propuesta inicial para construir el backend.
+
+Table usuarios {
+  id int [pk]
+  nombre varchar
+  email varchar [unique]
+  password_hash varchar
+  estado varchar
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table configuraciones_usuario {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  moneda_principal varchar
+  zona_horaria varchar
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table periodos_financieros {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  anio int
+  mes int
+  estado varchar
+  monto_inicial_estimado decimal
+  resultado_esperado decimal
+  resultado_real decimal
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table cuentas {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  nombre varchar
+  tipo varchar
+  banco varchar
+  moneda varchar
+  saldo_inicial decimal
+  saldo_actual decimal
+  estado varchar
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table categorias {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  nombre varchar
+  tipo varchar
+  color varchar
+  icono varchar
+  estado varchar
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table subcategorias {
+  id int [pk]
+  categoria_id int [ref: > categorias.id]
+  nombre varchar
+  estado varchar
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table movimientos {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  periodo_id int [ref: > periodos_financieros.id]
+  cuenta_origen_id int [ref: > cuentas.id]
+  cuenta_destino_id int [ref: > cuentas.id]
+  categoria_id int [ref: > categorias.id]
+  subcategoria_id int [ref: > subcategorias.id]
+  tipo varchar
+  monto_previsto decimal
+  monto_real decimal
+  estado varchar
+  fecha date
+  hora time
+  descripcion text
+  modulo_origen varchar
+  referencia_id int
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table pagos_recurrentes {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  cuenta_id int [ref: > cuentas.id]
+  categoria_id int [ref: > categorias.id]
+  subcategoria_id int [ref: > subcategorias.id]
+  nombre varchar
+  tipo varchar
+  monto_previsto decimal
+  frecuencia varchar
+  fecha_inicio date
+  fecha_fin date
+  estado_operativo varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table pagos_recurrentes_ocurrencias {
+  id int [pk]
+  pago_recurrente_id int [ref: > pagos_recurrentes.id]
+  periodo_id int [ref: > periodos_financieros.id]
+  movimiento_id int [ref: > movimientos.id]
+  fecha_programada date
+  monto_previsto decimal
+  monto_real decimal
+  estado varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table pagos_variables {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  periodo_id int [ref: > periodos_financieros.id]
+  cuenta_id int [ref: > cuentas.id]
+  categoria_id int [ref: > categorias.id]
+  subcategoria_id int [ref: > subcategorias.id]
+  movimiento_id int [ref: > movimientos.id]
+  nombre varchar
+  tipo varchar
+  monto_previsto decimal
+  monto_real decimal
+  fecha_prevista date
+  estado varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table suscripciones {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  cuenta_id int [ref: > cuentas.id]
+  categoria_id int [ref: > categorias.id]
+  nombre varchar
+  monto decimal
+  frecuencia varchar
+  proximo_cobro date
+  estado_operativo varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table suscripciones_ocurrencias {
+  id int [pk]
+  suscripcion_id int [ref: > suscripciones.id]
+  periodo_id int [ref: > periodos_financieros.id]
+  movimiento_id int [ref: > movimientos.id]
+  fecha_cobro date
+  monto_previsto decimal
+  monto_real decimal
+  estado varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table metas {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  cuenta_destino_id int [ref: > cuentas.id]
+  nombre varchar
+  tipo varchar
+  monto_objetivo decimal
+  monto_actual decimal
+  fecha_limite date
+  estado varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table aportes_metas {
+  id int [pk]
+  meta_id int [ref: > metas.id]
+  movimiento_id int [ref: > movimientos.id]
+  cuenta_origen_id int [ref: > cuentas.id]
+  cuenta_destino_id int [ref: > cuentas.id]
+  monto decimal
+  fecha date
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table prestamos_cobrar {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  cuenta_origen_id int [ref: > cuentas.id]
+  cuenta_retorno_id int [ref: > cuentas.id]
+  movimiento_salida_id int [ref: > movimientos.id]
+  movimiento_retorno_id int [ref: > movimientos.id]
+  nombre varchar
+  persona_entidad varchar
+  monto decimal
+  fecha_prestamo date
+  fecha_devolucion_estimada date
+  estado varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+
+Table deudas_pagar {
+  id int [pk]
+  usuario_id int [ref: > usuarios.id]
+  cuenta_ingreso_id int [ref: > cuentas.id]
+  cuenta_pago_id int [ref: > cuentas.id]
+  movimiento_ingreso_id int [ref: > movimientos.id]
+  movimiento_pago_id int [ref: > movimientos.id]
+  nombre varchar
+  persona_entidad varchar
+  monto decimal
+  fecha_recepcion date
+  fecha_pago_estimada date
+  estado varchar
+  descripcion text
+  creado_en timestamp
+  actualizado_en timestamp
+}
+

@@ -7,6 +7,7 @@ GitHub renderiza Mermaid cuando el diagrama esta dentro de un archivo Markdown.
 ## Indice
 
 - [ERD visual](erd/README.md)
+- [ERD completo del sistema](erd/sistema_completo.md)
 - [UML visual](uml/README.md)
 - [Secuencias visuales](uml/secuencias/README.md)
 - [Flujos visuales](flujos/README.md)
@@ -17,4 +18,3 @@ GitHub renderiza Mermaid cuando el diagrama esta dentro de un archivo Markdown.
 - `.mmd`: fuente Mermaid del diagrama.
 - `.dbml`: fuente para herramientas como dbdiagram.io.
 - `.puml`: fuente para PlantUML.
-

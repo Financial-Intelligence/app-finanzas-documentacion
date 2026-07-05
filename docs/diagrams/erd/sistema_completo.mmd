@@ -1,0 +1,278 @@
+erDiagram
+    USUARIOS {
+        int id PK
+        string nombre
+        string email UK
+        string password_hash
+        string estado
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    CONFIGURACIONES_USUARIO {
+        int id PK
+        int usuario_id FK
+        string moneda_principal
+        string zona_horaria
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    PERIODOS_FINANCIEROS {
+        int id PK
+        int usuario_id FK
+        int anio
+        int mes
+        string estado
+        decimal monto_inicial_estimado
+        decimal resultado_esperado
+        decimal resultado_real
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    CUENTAS {
+        int id PK
+        int usuario_id FK
+        string nombre
+        string tipo
+        string banco
+        string moneda
+        decimal saldo_inicial
+        decimal saldo_actual
+        string estado
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    CATEGORIAS {
+        int id PK
+        int usuario_id FK
+        string nombre
+        string tipo
+        string color
+        string icono
+        string estado
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    SUBCATEGORIAS {
+        int id PK
+        int categoria_id FK
+        string nombre
+        string estado
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    MOVIMIENTOS {
+        int id PK
+        int usuario_id FK
+        int periodo_id FK
+        int cuenta_origen_id FK
+        int cuenta_destino_id FK
+        int categoria_id FK
+        int subcategoria_id FK
+        string tipo
+        decimal monto_previsto
+        decimal monto_real
+        string estado
+        date fecha
+        time hora
+        string descripcion
+        string modulo_origen
+        int referencia_id
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    PAGOS_RECURRENTES {
+        int id PK
+        int usuario_id FK
+        int cuenta_id FK
+        int categoria_id FK
+        int subcategoria_id FK
+        string nombre
+        string tipo
+        decimal monto_previsto
+        string frecuencia
+        date fecha_inicio
+        date fecha_fin
+        string estado_operativo
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    PAGOS_RECURRENTES_OCURRENCIAS {
+        int id PK
+        int pago_recurrente_id FK
+        int periodo_id FK
+        int movimiento_id FK
+        date fecha_programada
+        decimal monto_previsto
+        decimal monto_real
+        string estado
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    PAGOS_VARIABLES {
+        int id PK
+        int usuario_id FK
+        int periodo_id FK
+        int cuenta_id FK
+        int categoria_id FK
+        int subcategoria_id FK
+        int movimiento_id FK
+        string nombre
+        string tipo
+        decimal monto_previsto
+        decimal monto_real
+        date fecha_prevista
+        string estado
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    SUSCRIPCIONES {
+        int id PK
+        int usuario_id FK
+        int cuenta_id FK
+        int categoria_id FK
+        string nombre
+        decimal monto
+        string frecuencia
+        date proximo_cobro
+        string estado_operativo
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    SUSCRIPCIONES_OCURRENCIAS {
+        int id PK
+        int suscripcion_id FK
+        int periodo_id FK
+        int movimiento_id FK
+        date fecha_cobro
+        decimal monto_previsto
+        decimal monto_real
+        string estado
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    METAS {
+        int id PK
+        int usuario_id FK
+        int cuenta_destino_id FK
+        string nombre
+        string tipo
+        decimal monto_objetivo
+        decimal monto_actual
+        date fecha_limite
+        string estado
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    APORTES_METAS {
+        int id PK
+        int meta_id FK
+        int movimiento_id FK
+        int cuenta_origen_id FK
+        int cuenta_destino_id FK
+        decimal monto
+        date fecha
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    PRESTAMOS_COBRAR {
+        int id PK
+        int usuario_id FK
+        int cuenta_origen_id FK
+        int cuenta_retorno_id FK
+        int movimiento_salida_id FK
+        int movimiento_retorno_id FK
+        string nombre
+        string persona_entidad
+        decimal monto
+        date fecha_prestamo
+        date fecha_devolucion_estimada
+        string estado
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    DEUDAS_PAGAR {
+        int id PK
+        int usuario_id FK
+        int cuenta_ingreso_id FK
+        int cuenta_pago_id FK
+        int movimiento_ingreso_id FK
+        int movimiento_pago_id FK
+        string nombre
+        string persona_entidad
+        decimal monto
+        date fecha_recepcion
+        date fecha_pago_estimada
+        string estado
+        string descripcion
+        datetime creado_en
+        datetime actualizado_en
+    }
+
+    USUARIOS ||--|| CONFIGURACIONES_USUARIO : configura
+    USUARIOS ||--o{ PERIODOS_FINANCIEROS : tiene
+    USUARIOS ||--o{ CUENTAS : posee
+    USUARIOS ||--o{ CATEGORIAS : define
+    USUARIOS ||--o{ MOVIMIENTOS : registra
+    USUARIOS ||--o{ PAGOS_RECURRENTES : configura
+    USUARIOS ||--o{ PAGOS_VARIABLES : planifica
+    USUARIOS ||--o{ SUSCRIPCIONES : administra
+    USUARIOS ||--o{ METAS : crea
+    USUARIOS ||--o{ PRESTAMOS_COBRAR : registra
+    USUARIOS ||--o{ DEUDAS_PAGAR : registra
+
+    PERIODOS_FINANCIEROS ||--o{ MOVIMIENTOS : agrupa
+    PERIODOS_FINANCIEROS ||--o{ PAGOS_RECURRENTES_OCURRENCIAS : contiene
+    PERIODOS_FINANCIEROS ||--o{ PAGOS_VARIABLES : contiene
+    PERIODOS_FINANCIEROS ||--o{ SUSCRIPCIONES_OCURRENCIAS : contiene
+
+    CATEGORIAS ||--o{ SUBCATEGORIAS : contiene
+    CATEGORIAS ||--o{ MOVIMIENTOS : clasifica
+    SUBCATEGORIAS ||--o{ MOVIMIENTOS : detalla
+
+    CUENTAS ||--o{ MOVIMIENTOS : origen
+    CUENTAS ||--o{ MOVIMIENTOS : destino
+    CUENTAS ||--o{ PAGOS_RECURRENTES : usa
+    CUENTAS ||--o{ PAGOS_VARIABLES : usa
+    CUENTAS ||--o{ SUSCRIPCIONES : paga
+    CUENTAS ||--o{ METAS : guarda
+
+    PAGOS_RECURRENTES ||--o{ PAGOS_RECURRENTES_OCURRENCIAS : genera
+    PAGOS_RECURRENTES_OCURRENCIAS ||--o| MOVIMIENTOS : confirma
+
+    PAGOS_VARIABLES ||--o| MOVIMIENTOS : confirma
+
+    SUSCRIPCIONES ||--o{ SUSCRIPCIONES_OCURRENCIAS : genera
+    SUSCRIPCIONES_OCURRENCIAS ||--o| MOVIMIENTOS : confirma
+
+    METAS ||--o{ APORTES_METAS : recibe
+    APORTES_METAS ||--|| MOVIMIENTOS : registra
+
+    PRESTAMOS_COBRAR ||--o| MOVIMIENTOS : salida
+    PRESTAMOS_COBRAR ||--o| MOVIMIENTOS : retorno
+
+    DEUDAS_PAGAR ||--o| MOVIMIENTOS : ingreso
+    DEUDAS_PAGAR ||--o| MOVIMIENTOS : pago
+
