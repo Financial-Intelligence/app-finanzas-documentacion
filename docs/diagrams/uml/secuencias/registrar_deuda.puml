@@ -1,0 +1,11 @@
+@startuml
+actor Usuario
+participant "Deudas por pagar" as Deudas
+participant "Movimientos" as Movimientos
+participant "Cuentas" as Cuentas
+
+Usuario -> Deudas: Registra deuda recibida
+Deudas -> Movimientos: Crea ingreso de dinero
+Movimientos -> Cuentas: Aumenta saldo de cuenta de ingreso
+@enduml
+

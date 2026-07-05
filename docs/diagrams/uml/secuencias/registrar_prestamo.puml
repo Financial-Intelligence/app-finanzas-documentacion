@@ -1,0 +1,11 @@
+@startuml
+actor Usuario
+participant "Prestamos por cobrar" as Prestamos
+participant "Movimientos" as Movimientos
+participant "Cuentas" as Cuentas
+
+Usuario -> Prestamos: Registra prestamo
+Prestamos -> Movimientos: Crea salida de dinero
+Movimientos -> Cuentas: Descuenta saldo de cuenta origen
+@enduml
+

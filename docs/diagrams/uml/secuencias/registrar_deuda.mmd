@@ -1,0 +1,10 @@
+sequenceDiagram
+    participant Usuario
+    participant Deudas
+    participant Movimientos
+    participant Cuentas
+
+    Usuario->>Deudas: Registra deuda recibida
+    Deudas->>Movimientos: Crea ingreso de dinero
+    Movimientos->>Cuentas: Aumenta saldo de cuenta de ingreso
+

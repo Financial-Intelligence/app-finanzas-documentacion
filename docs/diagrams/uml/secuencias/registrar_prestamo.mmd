@@ -1,0 +1,10 @@
+sequenceDiagram
+    participant Usuario
+    participant Prestamos
+    participant Movimientos
+    participant Cuentas
+
+    Usuario->>Prestamos: Registra prestamo
+    Prestamos->>Movimientos: Crea salida de dinero
+    Movimientos->>Cuentas: Descuenta saldo de cuenta origen
+

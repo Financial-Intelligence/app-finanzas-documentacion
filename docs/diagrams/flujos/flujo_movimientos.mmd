@@ -1,0 +1,12 @@
+flowchart TD
+    Origen[Modulo origen]
+    Validacion[Validar datos]
+    Movimiento[Crear o actualizar movimiento]
+    Cuenta[Actualizar cuenta si corresponde]
+    Historial[Guardar historial]
+
+    Origen --> Validacion
+    Validacion --> Movimiento
+    Movimiento --> Cuenta
+    Movimiento --> Historial
+

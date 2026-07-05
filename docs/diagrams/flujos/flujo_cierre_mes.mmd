@@ -1,0 +1,13 @@
+flowchart TD
+    Inicio[Fin del mes calendario]
+    Pendientes[Revisar pendientes]
+    Confirmados[Revisar confirmados]
+    Real[Calcular resultado real]
+    Historico[Guardar vista historica]
+
+    Inicio --> Pendientes
+    Inicio --> Confirmados
+    Pendientes --> Real
+    Confirmados --> Real
+    Real --> Historico
+

@@ -1,0 +1,14 @@
+classDiagram
+    class Cuenta {
+        +id
+        +nombre
+    }
+
+    class Movimiento {
+        +id
+        +monto
+        +estado
+    }
+
+    Cuenta "1" --> "0..*" Movimiento
+

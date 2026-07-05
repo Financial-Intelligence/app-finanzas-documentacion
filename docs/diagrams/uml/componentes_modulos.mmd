@@ -1,0 +1,24 @@
+flowchart LR
+    Acceso[Acceso personal]
+    Cuentas[Cuentas]
+    Movimientos[Movimientos]
+    Categorias[Categorias]
+    Recurrentes[Pagos recurrentes]
+    Variables[Pagos variables]
+    Suscripciones[Suscripciones]
+    Metas[Metas]
+    Prestamos[Prestamos por cobrar]
+    Deudas[Deudas por pagar]
+    Dashboard[Dashboard y analisis]
+
+    Acceso --> Cuentas
+    Cuentas --> Movimientos
+    Categorias --> Movimientos
+    Recurrentes --> Movimientos
+    Variables --> Movimientos
+    Suscripciones --> Movimientos
+    Metas --> Movimientos
+    Prestamos --> Movimientos
+    Deudas --> Movimientos
+    Movimientos --> Dashboard
+

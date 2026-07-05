@@ -1,0 +1,11 @@
+@startuml
+actor Usuario
+participant "Pagos recurrentes" as Recurrentes
+participant "Movimientos" as Movimientos
+participant "Cuentas" as Cuentas
+
+Usuario -> Recurrentes: Confirma pago
+Recurrentes -> Movimientos: Registra movimiento confirmado
+Movimientos -> Cuentas: Actualiza saldo relacionado
+@enduml
+

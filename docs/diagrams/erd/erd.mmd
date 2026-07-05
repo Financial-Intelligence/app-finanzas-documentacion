@@ -1,0 +1,14 @@
+erDiagram
+    CUENTA {
+        int id PK
+        string nombre
+    }
+
+    MOVIMIENTO {
+        int id PK
+        decimal monto
+        string estado
+    }
+
+    CUENTA ||--o{ MOVIMIENTO : registra
+

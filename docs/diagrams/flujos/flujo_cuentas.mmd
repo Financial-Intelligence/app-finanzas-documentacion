@@ -1,0 +1,12 @@
+flowchart TD
+    Movimiento[Movimiento confirmado]
+    Tipo{Tipo de movimiento}
+    Ingreso[Aumenta saldo]
+    Egreso[Disminuye saldo]
+    Transferencia[Mueve saldo entre cuentas]
+
+    Movimiento --> Tipo
+    Tipo --> Ingreso
+    Tipo --> Egreso
+    Tipo --> Transferencia
+

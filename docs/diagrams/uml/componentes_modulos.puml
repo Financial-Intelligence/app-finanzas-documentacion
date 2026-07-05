@@ -1,0 +1,25 @@
+@startuml
+component "Acceso personal" as Acceso
+component "Cuentas" as Cuentas
+component "Movimientos" as Movimientos
+component "Categorias" as Categorias
+component "Pagos recurrentes" as Recurrentes
+component "Pagos variables" as Variables
+component "Suscripciones" as Suscripciones
+component "Metas" as Metas
+component "Prestamos por cobrar" as Prestamos
+component "Deudas por pagar" as Deudas
+component "Dashboard y analisis" as Dashboard
+
+Acceso --> Cuentas
+Cuentas --> Movimientos
+Categorias --> Movimientos
+Recurrentes --> Movimientos
+Variables --> Movimientos
+Suscripciones --> Movimientos
+Metas --> Movimientos
+Prestamos --> Movimientos
+Deudas --> Movimientos
+Movimientos --> Dashboard
+@enduml
+

@@ -1,0 +1,15 @@
+// ERD en DBML.
+// Pendiente de completar con la estructura real de PostgreSQL.
+
+Table cuentas {
+  id int [pk]
+  nombre varchar
+}
+
+Table movimientos {
+  id int [pk]
+  cuenta_id int [ref: > cuentas.id]
+  monto decimal
+  estado varchar
+}
+
