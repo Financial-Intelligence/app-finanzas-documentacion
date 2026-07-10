@@ -1,4 +1,4 @@
-// Arquitectura base completa del sistema financiero.
+﻿// Arquitectura base completa del sistema financiero.
 // Propuesta inicial para construir el backend.
 
 Table usuarios {
@@ -42,6 +42,9 @@ Table cuentas {
   moneda varchar
   saldo_inicial decimal
   saldo_actual decimal
+  limite_credito decimal
+  credito_disponible decimal
+  es_principal boolean
   estado varchar
   creado_en timestamp
   actualizado_en timestamp

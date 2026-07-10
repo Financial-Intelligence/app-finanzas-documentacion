@@ -1,4 +1,4 @@
-# 06 - Riesgos y pendientes
+﻿# 06 - Riesgos y pendientes
 
 ## Estado del documento
 
@@ -14,6 +14,13 @@ Documento para controlar riesgos, dudas y temas abiertos.
 - Perder historial al eliminar movimientos.
 - Calcular diferente el mismo dato en distintos modulos.
 
+## Avances cerrados
+
+- Modulo de cuentas base implementado en backend.
+- Cuenta principal por usuario implementada con `isPrimary`.
+- Saldo total separado de credito disponible.
+- Inactivacion de cuentas en vez de eliminacion fisica.
+
 ## Pendientes principales
 
 - Definir resultado real.
@@ -21,6 +28,6 @@ Documento para controlar riesgos, dudas y temas abiertos.
 - Definir reglas de edicion de meses pasados.
 - Definir dashboard.
 - Definir reportes.
-- Definir logica futura de tarjetas de credito.
+- Definir logica avanzada de tarjetas de credito: consumo usado, fechas de corte, pagos y deuda pendiente.
 - Definir alcance de importacion desde Excel.
 

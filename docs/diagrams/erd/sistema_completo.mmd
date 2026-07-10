@@ -1,4 +1,4 @@
-erDiagram
+﻿erDiagram
     USUARIOS {
         int id PK
         string nombre
@@ -40,6 +40,9 @@ erDiagram
         string moneda
         decimal saldo_inicial
         decimal saldo_actual
+        decimal limite_credito
+        decimal credito_disponible
+        boolean es_principal
         string estado
         datetime creado_en
         datetime actualizado_en

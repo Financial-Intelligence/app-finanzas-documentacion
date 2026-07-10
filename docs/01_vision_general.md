@@ -1,4 +1,4 @@
-# 01 - Vision general del sistema financiero
+﻿# 01 - Vision general del sistema financiero
 
 ## Estado del documento
 
@@ -152,11 +152,12 @@ Ejemplos:
 - Efectivo.
 - Tarjeta de credito.
 
-Las tarjetas de credito se consideran para futuro. Por ahora podran estar visibles o contempladas, pero no tendran logica funcional completa.
+Las tarjetas de credito ya estan contempladas en el modulo de cuentas como credito disponible separado. No suman al saldo total porque no representan dinero propio disponible.
 
 Las cuentas deben permitir saber:
 
 - Cuanto dinero hay.
+- Cual es la cuenta principal del usuario.
 - Como se movio el dinero.
 - Que movimientos estan asociados.
 - Como participa la cuenta en la planificacion mensual.
@@ -328,7 +329,7 @@ Los meses pasados podran modificarse, pero el sistema debe cuidar que el histori
 
 ## Riesgos conceptuales detectados
 
-Estos riesgos deben controlarse durante el diseño:
+Estos riesgos deben controlarse durante el diseÃ±o:
 
 - Duplicar ingresos al contar un ingreso pendiente y luego volverlo a contar al confirmarlo.
 - Duplicar gastos si una suscripcion tambien se registra como pago recurrente normal.

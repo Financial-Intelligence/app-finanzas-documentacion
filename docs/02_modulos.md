@@ -1,4 +1,4 @@
-# 02 - Modulos del sistema financiero
+﻿# 02 - Modulos del sistema financiero
 
 ## Estado del documento
 
@@ -86,16 +86,19 @@ Ejemplos:
 - Cuenta de ahorros.
 - Billetera digital.
 - Efectivo.
-- Tarjeta de credito futura.
+- Tarjeta de credito.
 
 ### Que hace
 
 - Crea cuentas.
 - Edita cuentas.
 - Mantiene saldo de cuentas.
+- Permite activar o inactivar cuentas.
+- Permite marcar una cuenta principal por usuario.
 - Permite identificar desde donde sale o hacia donde entra el dinero.
 - Participa en transferencias.
 - Sirve como base para calcular dinero disponible.
+- Separa saldo total de credito disponible.
 
 ### Que no hace
 
@@ -116,7 +119,14 @@ Este modulo existe porque las cuentas son la base real del dinero disponible.
 - Cuentas inactivas.
 - Saldos.
 - Transferencias entre cuentas.
-- Cuentas de credito futuras.
+- Cuenta principal.
+- Cuentas de credito.
+
+### Regla confirmada sobre credito
+
+Las cuentas de credito forman parte del modulo de cuentas, pero no suman al saldo total.
+
+El credito disponible se muestra como un indicador separado.
 
 ## 3. Modulo Movimientos
 
@@ -241,7 +251,7 @@ Gestionar ingresos y gastos que se repiten en el tiempo.
 - Registra egresos recurrentes.
 - Proyecta pagos futuros.
 - Genera movimientos pendientes para cada periodo.
-- Permite confirmar cuando el pago realmente ocurre.
+- Permite registrar cuando el pago realmente ocurre.
 - Permite registrar diferencias entre monto previsto y monto real.
 
 ### Que no hace
@@ -255,6 +265,10 @@ Gestionar ingresos y gastos que se repiten en el tiempo.
 Muchos ingresos y gastos se repiten. Si no existe este modulo, el usuario tendria que crearlos manualmente cada mes.
 
 Este modulo ayuda a construir los calculos mensuales de forma automatica.
+
+La accion operativa no se llamara confirmar recurrente. Se llamara registrar pago.
+
+Al registrar pago, el monto previsto se carga por defecto, pero el usuario puede ingresar un monto real distinto.
 
 ### Submodulos posibles
 
@@ -515,7 +529,7 @@ Reservar espacio conceptual para una funcionalidad futura de tarjetas de credito
 
 ### Justificacion
 
-Las tarjetas de credito forman parte de la vision futura, pero todavia no tienen reglas suficientes para ser implementadas completamente.
+Las tarjetas de credito ya tienen una primera version funcional dentro del modulo de cuentas: limite de credito, credito disponible y exclusion del saldo total. Las reglas avanzadas quedan para una etapa futura.
 
 Mantenerlas separadas evita mezclar una logica incompleta con cuentas normales.
 
