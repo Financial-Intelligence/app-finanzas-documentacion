@@ -1,286 +1,301 @@
 # ERD completo del sistema
 
-Este diagrama representa la arquitectura base completa del sistema financiero.
-
-Es una propuesta inicial para construir el backend. Debe validarse contra el codigo y la base de datos real cuando existan.
+Este diagrama representa el modelo base actualizado segun la especificacion de base de datos/API.
 
 ```mermaid
 erDiagram
-    USUARIOS {
-        int id PK
-        string nombre
-        string email UK
-        string password_hash
-        string estado
-        datetime creado_en
-        datetime actualizado_en
+    users {
+        uuid id PK
+        varchar name
+        varchar email UK
+        text password_hash
+        currency base_currency
+        decimal savings_target
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    CONFIGURACIONES_USUARIO {
-        int id PK
-        int usuario_id FK
-        string moneda_principal
-        string zona_horaria
-        datetime creado_en
-        datetime actualizado_en
+    refresh_tokens {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK
+        timestamptz expires_at
+        timestamptz revoked_at
+        timestamptz created_at
     }
 
-    PERIODOS_FINANCIEROS {
-        int id PK
-        int usuario_id FK
-        int anio
-        int mes
-        string estado
-        decimal monto_inicial_estimado
-        decimal resultado_esperado
-        decimal resultado_real
-        datetime creado_en
-        datetime actualizado_en
+    accounts {
+        uuid id PK
+        uuid user_id FK
+        varchar name
+        account_type type
+        varchar bank_name
+        currency currency
+        decimal initial_balance
+        decimal current_balance
+        decimal credit_limit
+        account_status status
+        timestamptz deleted_at
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    CUENTAS {
-        int id PK
-        int usuario_id FK
-        string nombre
-        string tipo
-        string banco
-        string moneda
-        decimal saldo_inicial
-        decimal saldo_actual
-        string estado
-        datetime creado_en
-        datetime actualizado_en
+    categories {
+        uuid id PK
+        uuid user_id FK
+        category_type type
+        varchar name
+        varchar color
+        varchar icon
+        boolean is_active
+        timestamptz deleted_at
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    CATEGORIAS {
-        int id PK
-        int usuario_id FK
-        string nombre
-        string tipo
-        string color
-        string icono
-        string estado
-        datetime creado_en
-        datetime actualizado_en
+    subcategories {
+        uuid id PK
+        uuid category_id FK
+        varchar name
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    SUBCATEGORIAS {
-        int id PK
-        int categoria_id FK
-        string nombre
-        string estado
-        datetime creado_en
-        datetime actualizado_en
+    movements {
+        uuid id PK
+        uuid user_id FK
+        movement_type type
+        movement_status status
+        decimal amount
+        uuid account_id FK
+        uuid to_account_id FK
+        uuid category_id FK
+        uuid subcategory_id FK
+        char period
+        date occurred_on
+        varchar description
+        source_type source_type
+        uuid source_id
+        timestamptz deleted_at
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    MOVIMIENTOS {
-        int id PK
-        int usuario_id FK
-        int periodo_id FK
-        int cuenta_origen_id FK
-        int cuenta_destino_id FK
-        int categoria_id FK
-        int subcategoria_id FK
-        string tipo
-        decimal monto_previsto
-        decimal monto_real
-        string estado
-        date fecha
-        time hora
-        string descripcion
-        string modulo_origen
-        int referencia_id
-        datetime creado_en
-        datetime actualizado_en
+    recurring_payments {
+        uuid id PK
+        uuid user_id FK
+        movement_type type
+        varchar name
+        decimal amount
+        uuid account_id FK
+        uuid category_id FK
+        payment_frequency frequency
+        date next_date
+        recurring_status status
+        char last_confirmed
+        timestamptz deleted_at
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    PAGOS_RECURRENTES {
-        int id PK
-        int usuario_id FK
-        int cuenta_id FK
-        int categoria_id FK
-        int subcategoria_id FK
-        string nombre
-        string tipo
-        decimal monto_previsto
-        string frecuencia
-        date fecha_inicio
-        date fecha_fin
-        string estado_operativo
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    recurring_occurrences {
+        uuid id PK
+        uuid recurring_id FK
+        uuid user_id FK
+        char period
+        date due_date
+        decimal amount
+        fulfillment_status status
+        uuid movement_id FK
+        timestamptz confirmed_at
     }
 
-    PAGOS_RECURRENTES_OCURRENCIAS {
-        int id PK
-        int pago_recurrente_id FK
-        int periodo_id FK
-        int movimiento_id FK
-        date fecha_programada
-        decimal monto_previsto
-        decimal monto_real
-        string estado
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    variable_payments {
+        uuid id PK
+        uuid user_id FK
+        movement_type type
+        varchar name
+        decimal amount
+        uuid account_id FK
+        uuid category_id FK
+        uuid subcategory_id FK
+        char period
+        date planned_date
+        fulfillment_status status
+        uuid movement_id FK
+        timestamptz deleted_at
     }
 
-    PAGOS_VARIABLES {
-        int id PK
-        int usuario_id FK
-        int periodo_id FK
-        int cuenta_id FK
-        int categoria_id FK
-        int subcategoria_id FK
-        int movimiento_id FK
-        string nombre
-        string tipo
-        decimal monto_previsto
-        decimal monto_real
-        date fecha_prevista
-        string estado
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    subscriptions {
+        uuid id PK
+        uuid user_id FK
+        varchar name
+        decimal amount
+        uuid account_id FK
+        uuid category_id FK
+        payment_frequency frequency
+        date next_renewal
+        subscription_status status
+        char last_paid
+        timestamptz deleted_at
     }
 
-    SUSCRIPCIONES {
-        int id PK
-        int usuario_id FK
-        int cuenta_id FK
-        int categoria_id FK
-        string nombre
-        decimal monto
-        string frecuencia
-        date proximo_cobro
-        string estado_operativo
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    subscription_renewals {
+        uuid id PK
+        uuid subscription_id FK
+        uuid user_id FK
+        char period
+        decimal amount
+        fulfillment_status status
+        uuid movement_id FK
+        timestamptz paid_at
     }
 
-    SUSCRIPCIONES_OCURRENCIAS {
-        int id PK
-        int suscripcion_id FK
-        int periodo_id FK
-        int movimiento_id FK
-        date fecha_cobro
-        decimal monto_previsto
-        decimal monto_real
-        string estado
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    loans {
+        uuid id PK
+        uuid user_id FK
+        varchar debtor
+        decimal original_amount
+        decimal outstanding
+        uuid source_account_id FK
+        uuid return_account_id FK
+        date loan_date
+        date due_date
+        loan_status status
+        timestamptz deleted_at
     }
 
-    METAS {
-        int id PK
-        int usuario_id FK
-        int cuenta_destino_id FK
-        string nombre
-        string tipo
-        decimal monto_objetivo
-        decimal monto_actual
-        date fecha_limite
-        string estado
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    loan_collections {
+        uuid id PK
+        uuid loan_id FK
+        uuid user_id FK
+        decimal amount
+        date collected_on
+        uuid account_id FK
+        uuid movement_id FK
     }
 
-    APORTES_METAS {
-        int id PK
-        int meta_id FK
-        int movimiento_id FK
-        int cuenta_origen_id FK
-        int cuenta_destino_id FK
-        decimal monto
-        date fecha
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    debts {
+        uuid id PK
+        uuid user_id FK
+        varchar creditor
+        decimal original_amount
+        decimal balance
+        uuid account_id FK
+        uuid receive_account_id FK
+        date received_on
+        date due_date
+        debt_status status
+        timestamptz deleted_at
     }
 
-    PRESTAMOS_COBRAR {
-        int id PK
-        int usuario_id FK
-        int cuenta_origen_id FK
-        int cuenta_retorno_id FK
-        int movimiento_salida_id FK
-        int movimiento_retorno_id FK
-        string nombre
-        string persona_entidad
-        decimal monto
-        date fecha_prestamo
-        date fecha_devolucion_estimada
-        string estado
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    debt_payments {
+        uuid id PK
+        uuid debt_id FK
+        uuid user_id FK
+        decimal amount
+        date paid_on
+        uuid account_id FK
+        uuid movement_id FK
     }
 
-    DEUDAS_PAGAR {
-        int id PK
-        int usuario_id FK
-        int cuenta_ingreso_id FK
-        int cuenta_pago_id FK
-        int movimiento_ingreso_id FK
-        int movimiento_pago_id FK
-        string nombre
-        string persona_entidad
-        decimal monto
-        date fecha_recepcion
-        date fecha_pago_estimada
-        string estado
-        string descripcion
-        datetime creado_en
-        datetime actualizado_en
+    goals {
+        uuid id PK
+        uuid user_id FK
+        varchar name
+        goal_type type
+        decimal target_amount
+        decimal current_amount
+        date deadline
+        uuid account_id FK
+        goal_status status
+        goal_health health
+        timestamptz deleted_at
     }
 
-    USUARIOS ||--|| CONFIGURACIONES_USUARIO : configura
-    USUARIOS ||--o{ PERIODOS_FINANCIEROS : tiene
-    USUARIOS ||--o{ CUENTAS : posee
-    USUARIOS ||--o{ CATEGORIAS : define
-    USUARIOS ||--o{ MOVIMIENTOS : registra
-    USUARIOS ||--o{ PAGOS_RECURRENTES : configura
-    USUARIOS ||--o{ PAGOS_VARIABLES : planifica
-    USUARIOS ||--o{ SUSCRIPCIONES : administra
-    USUARIOS ||--o{ METAS : crea
-    USUARIOS ||--o{ PRESTAMOS_COBRAR : registra
-    USUARIOS ||--o{ DEUDAS_PAGAR : registra
+    goal_contributions {
+        uuid id PK
+        uuid goal_id FK
+        uuid user_id FK
+        decimal amount
+        date contributed_on
+        uuid from_account_id FK
+        uuid to_account_id FK
+        uuid movement_id FK
+    }
 
-    PERIODOS_FINANCIEROS ||--o{ MOVIMIENTOS : agrupa
-    PERIODOS_FINANCIEROS ||--o{ PAGOS_RECURRENTES_OCURRENCIAS : contiene
-    PERIODOS_FINANCIEROS ||--o{ PAGOS_VARIABLES : contiene
-    PERIODOS_FINANCIEROS ||--o{ SUSCRIPCIONES_OCURRENCIAS : contiene
+    budgets {
+        uuid id PK
+        uuid user_id FK
+        budget_scope scope
+        uuid category_id FK
+        varchar name
+        decimal amount
+        char period
+    }
 
-    CATEGORIAS ||--o{ SUBCATEGORIAS : contiene
-    CATEGORIAS ||--o{ MOVIMIENTOS : clasifica
-    SUBCATEGORIAS ||--o{ MOVIMIENTOS : detalla
+    monthly_plans {
+        uuid id PK
+        uuid user_id FK
+        uuid account_id FK
+        char period
+        decimal carried_over
+        decimal recurring_income
+        decimal initial_amount
+        decimal planned_expenses
+        decimal planned_savings
+        decimal planned_debts
+        decimal expected_result
+        decimal real_result
+    }
 
-    CUENTAS ||--o{ MOVIMIENTOS : origen
-    CUENTAS ||--o{ MOVIMIENTOS : destino
-    CUENTAS ||--o{ PAGOS_RECURRENTES : usa
-    CUENTAS ||--o{ PAGOS_VARIABLES : usa
-    CUENTAS ||--o{ SUSCRIPCIONES : paga
-    CUENTAS ||--o{ METAS : guarda
+    users ||--o{ refresh_tokens : has
+    users ||--o{ accounts : owns
+    users ||--o{ categories : defines
+    users ||--o{ movements : registers
+    users ||--o{ recurring_payments : configures
+    users ||--o{ variable_payments : plans
+    users ||--o{ subscriptions : owns
+    users ||--o{ loans : lends
+    users ||--o{ debts : owes
+    users ||--o{ goals : creates
+    users ||--o{ budgets : defines
+    users ||--o{ monthly_plans : plans
 
-    PAGOS_RECURRENTES ||--o{ PAGOS_RECURRENTES_OCURRENCIAS : genera
-    PAGOS_RECURRENTES_OCURRENCIAS ||--o| MOVIMIENTOS : confirma
+    categories ||--o{ subcategories : contains
+    categories ||--o{ movements : classifies
+    subcategories ||--o{ movements : details
 
-    PAGOS_VARIABLES ||--o| MOVIMIENTOS : confirma
+    accounts ||--o{ movements : account
+    accounts ||--o{ movements : destination
+    accounts ||--o{ recurring_payments : used_by
+    accounts ||--o{ variable_payments : used_by
+    accounts ||--o{ subscriptions : pays
+    accounts ||--o{ loans : source
+    accounts ||--o{ loan_collections : receives
+    accounts ||--o{ debts : pays
+    accounts ||--o{ debt_payments : pays
+    accounts ||--o{ goals : stores
+    accounts ||--o{ monthly_plans : plans
 
-    SUSCRIPCIONES ||--o{ SUSCRIPCIONES_OCURRENCIAS : genera
-    SUSCRIPCIONES_OCURRENCIAS ||--o| MOVIMIENTOS : confirma
+    recurring_payments ||--o{ recurring_occurrences : generates
+    recurring_occurrences ||--o| movements : creates
 
-    METAS ||--o{ APORTES_METAS : recibe
-    APORTES_METAS ||--|| MOVIMIENTOS : registra
+    variable_payments ||--o| movements : creates
 
-    PRESTAMOS_COBRAR ||--o| MOVIMIENTOS : salida
-    PRESTAMOS_COBRAR ||--o| MOVIMIENTOS : retorno
+    subscriptions ||--o{ subscription_renewals : generates
+    subscription_renewals ||--o| movements : creates
 
-    DEUDAS_PAGAR ||--o| MOVIMIENTOS : ingreso
-    DEUDAS_PAGAR ||--o| MOVIMIENTOS : pago
+    loans ||--o{ loan_collections : receives
+    loan_collections ||--o| movements : creates
+
+    debts ||--o{ debt_payments : pays
+    debt_payments ||--o| movements : creates
+
+    goals ||--o{ goal_contributions : receives
+    goal_contributions ||--o| movements : creates
+
+    categories ||--o{ budgets : limits
 ```
 

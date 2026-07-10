@@ -1,25 +1,34 @@
 @startuml
-component "Acceso personal" as Acceso
-component "Cuentas" as Cuentas
-component "Movimientos" as Movimientos
-component "Categorias" as Categorias
-component "Pagos recurrentes" as Recurrentes
+component "Acceso personal" as Auth
+component "Cuentas" as Accounts
+component "Categorias" as Categories
+component "Movimientos" as Movements
+component "Pagos recurrentes" as Recurring
 component "Pagos variables" as Variables
-component "Suscripciones" as Suscripciones
-component "Metas" as Metas
-component "Prestamos por cobrar" as Prestamos
-component "Deudas por pagar" as Deudas
-component "Dashboard y analisis" as Dashboard
+component "Suscripciones" as Subscriptions
+component "Prestamos" as Loans
+component "Deudas" as Debts
+component "Metas" as Goals
+component "Presupuestos" as Budgets
+component "Planes mensuales" as MonthlyPlans
+component "Dashboard y reportes" as Dashboard
 
-Acceso --> Cuentas
-Cuentas --> Movimientos
-Categorias --> Movimientos
-Recurrentes --> Movimientos
-Variables --> Movimientos
-Suscripciones --> Movimientos
-Metas --> Movimientos
-Prestamos --> Movimientos
-Deudas --> Movimientos
-Movimientos --> Dashboard
+Auth --> Accounts
+Auth --> Categories
+Auth --> Movements
+Accounts --> Movements
+Categories --> Movements
+Recurring --> Movements
+Variables --> Movements
+Subscriptions --> Movements
+Loans --> Movements
+Debts --> Movements
+Goals --> Movements
+Categories --> Budgets
+Accounts --> MonthlyPlans
+Movements --> MonthlyPlans
+Movements --> Dashboard
+Budgets --> Dashboard
+MonthlyPlans --> Dashboard
 @enduml
 

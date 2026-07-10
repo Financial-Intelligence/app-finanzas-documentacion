@@ -1,6 +1,6 @@
 # ERD visual
 
-Este diagrama es una version inicial. Debe actualizarse cuando se analice la base de datos real.
+Diagramas actualizados con la especificacion de base de datos/API.
 
 ## Diagrama completo recomendado
 
@@ -8,22 +8,21 @@ Este diagrama es una version inicial. Debe actualizarse cuando se analice la bas
 - [Fuente Mermaid completa](sistema_completo.mmd)
 - [Fuente DBML completa](sistema_completo.dbml)
 
-## Diagrama simple inicial
+## Diagrama reducido
 
 ```mermaid
 erDiagram
-    CUENTA {
-        int id PK
-        string nombre
-    }
-
-    MOVIMIENTO {
-        int id PK
-        decimal monto
-        string estado
-    }
-
-    CUENTA ||--o{ MOVIMIENTO : registra
+    users ||--o{ accounts : owns
+    users ||--o{ movements : registers
+    accounts ||--o{ movements : affects
+    categories ||--o{ movements : classifies
+    recurring_payments ||--o{ recurring_occurrences : generates
+    recurring_occurrences ||--o| movements : creates
+    subscriptions ||--o{ subscription_renewals : generates
+    subscription_renewals ||--o| movements : creates
+    loans ||--o{ loan_collections : receives
+    debts ||--o{ debt_payments : pays
+    goals ||--o{ goal_contributions : receives
 ```
 
 ## Archivos fuente

@@ -1,74 +1,57 @@
 # Flujos visuales
 
-Estos diagramas muestran flujos generales del sistema.
+Diagramas actualizados con el avance de cuentas y la especificacion de movimientos.
 
-## Flujo de movimientos
+## Flujo actual de cuentas
+
+```mermaid
+flowchart TD
+    Usuario[Usuario autenticado]
+    API[API cuentas]
+    Validacion[Validar datos]
+    Accounts[accounts]
+    Summary[Resumen de cuentas]
+
+    Usuario --> API
+    API --> Validacion
+    Validacion --> Accounts
+    Accounts --> Summary
+```
+
+## Flujo futuro de movimientos
 
 ```mermaid
 flowchart TD
     Origen[Modulo origen]
-    Validacion[Validar datos]
-    Movimiento[Crear o actualizar movimiento]
-    Cuenta[Actualizar cuenta si corresponde]
-    Historial[Guardar historial]
+    Movement[movements]
+    Estado{Estado}
+    Proyeccion[Participa en proyeccion]
+    Saldo[Actualiza saldo real]
+    Dashboard[Dashboard y reportes]
 
-    Origen --> Validacion
-    Validacion --> Movimiento
+    Origen --> Movement
+    Movement --> Estado
+    Estado -->|pending| Proyeccion
+    Estado -->|confirmed| Saldo
+    Movement --> Dashboard
+```
+
+## Flujo futuro de registrar pago recurrente
+
+```mermaid
+flowchart TD
+    Recurrente[recurring_payments]
+    Ocurrencia[recurring_occurrences]
+    Formulario[Formulario con monto previsto]
+    Real[Monto real registrado]
+    Movimiento[movements]
+    Cuenta[accounts]
+
+    Recurrente --> Ocurrencia
+    Ocurrencia --> Formulario
+    Formulario --> Real
+    Real --> Movimiento
     Movimiento --> Cuenta
-    Movimiento --> Historial
-```
-
-## Flujo de cuentas
-
-```mermaid
-flowchart TD
-    Movimiento[Movimiento confirmado]
-    Tipo{Tipo de movimiento}
-    Ingreso[Aumenta saldo]
-    Egreso[Disminuye saldo]
-    Transferencia[Mueve saldo entre cuentas]
-
-    Movimiento --> Tipo
-    Tipo --> Ingreso
-    Tipo --> Egreso
-    Tipo --> Transferencia
-```
-
-## Flujo de cierre de mes
-
-```mermaid
-flowchart TD
-    Inicio[Fin del mes calendario]
-    Pendientes[Revisar pendientes]
-    Confirmados[Revisar confirmados]
-    Real[Calcular resultado real]
-    Historico[Guardar vista historica]
-
-    Inicio --> Pendientes
-    Inicio --> Confirmados
-    Pendientes --> Real
-    Confirmados --> Real
-    Real --> Historico
-```
-
-## Flujo de resultado esperado
-
-```mermaid
-flowchart TD
-    Inicio[Monto inicial]
-    Ingresos[Ingresos previstos]
-    Gastos[Gastos previstos]
-    Ahorros[Ahorros como transferencias]
-    Deudas[Deudas previstas]
-    Prestamos[Prestamos previstos]
-    Resultado[Sobrante esperado]
-
-    Inicio --> Resultado
-    Ingresos --> Resultado
-    Gastos --> Resultado
-    Ahorros --> Resultado
-    Deudas --> Resultado
-    Prestamos --> Resultado
 ```
 
 ## Archivos fuente

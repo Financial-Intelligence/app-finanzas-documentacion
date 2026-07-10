@@ -1,34 +1,45 @@
-﻿# 05 - Decisiones de arquitectura
+# 05 - Decisiones de arquitectura
 
 ## Estado del documento
 
-Documento para registrar decisiones tecnicas y conceptuales importantes.
-
-## Objetivo
-
-Evitar que las decisiones se pierdan durante el avance del proyecto.
+Actualizado con la especificacion de base de datos/API y el avance del modulo de cuentas.
 
 ## Decisiones actuales
 
-- La documentacion se mantiene separada del frontend y backend.
-- La documentacion se guarda en un repositorio propio.
-- La planificacion mensual no se considera modulo visible independiente.
-- La planificacion mensual se trata como reglas internas de calculo mensual.
-- El sistema es personal y solo maneja login de acceso.
-- Por ahora se manejara una sola moneda comun para todas las cuentas.
-- Las cuentas no se eliminaran fisicamente; se inactivaran.
-- Las cuentas de credito no sumaran al saldo total.
-- Las cuentas de credito se sumaran en un indicador separado de credito disponible.
-- La cuenta principal se maneja en backend con `isPrimary`.
-- Solo una cuenta principal debe existir por usuario.
-- La accion para pagos planificados sera registrar pago, no confirmar recurrente.
-- El monto previsto se conservara aunque el monto real registrado sea distinto.
+1. La documentacion vive en un repositorio separado del frontend y backend.
+2. El sistema usa login y datos separados por usuario autenticado.
+3. No se plantea administracion de otros usuarios ni roles avanzados.
+4. `movements` sera la fuente central de verdad financiera.
+5. Las tablas principales usaran UUID.
+6. El dinero se guardara como `DECIMAL(14,2)`.
+7. El periodo mensual se representara como `YYYY-MM`.
+8. Las tablas criticas usaran borrado logico, no borrado fisico.
+9. Las cuentas ya tienen avance backend funcional.
+10. Las cuentas no se eliminan; se inactivan.
+11. Tarjetas de credito se separan del saldo total.
+12. Pagos recurrentes usaran el concepto futuro de registrar pago.
+13. Dashboard y reportes leeran datos ya calculados o registrados, no seran fuente principal.
+
+## Decisiones sobre modelo de datos
+
+- `users` guarda el usuario autenticado.
+- `refresh_tokens` guarda sesiones o renovacion de acceso.
+- `accounts` guarda cuentas financieras.
+- `categories` y `subcategories` clasifican movimientos.
+- `movements` centraliza ingresos, egresos y transferencias.
+- `recurring_payments` define recurrentes.
+- `recurring_occurrences` guarda ocurrencias por periodo.
+- `variable_payments` guarda planificaciones de un periodo.
+- `subscriptions` y `subscription_renewals` separan suscripciones de recurrentes.
+- `loans` y `loan_collections` permiten cobros parciales o totales.
+- `debts` y `debt_payments` permiten pagos parciales o totales.
+- `goals` y `goal_contributions` controlan metas.
+- `budgets` queda incluido para presupuestos.
+- `monthly_plans` guarda snapshots mensuales de planificacion.
 
 ## Decisiones pendientes
 
-- Definir resultado real.
-- Definir reglas finales de cierre mensual.
-- Definir alcance final de dashboard.
-- Definir importacion desde Excel.
-- Definir reglas avanzadas de tarjetas de credito.
-- Definir si en el futuro se subiran comprobantes como archivos locales o externos.
+- Definir implementacion final de `monthly_plans`.
+- Definir si los movimientos cancelados y eliminados compartiran estado o campo separado.
+- Definir alcance exacto de reportes avanzados.
+- Definir automatizacion de documentacion desde base de datos real.

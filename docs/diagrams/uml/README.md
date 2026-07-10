@@ -1,51 +1,73 @@
 # UML visual
 
-Estos diagramas son versiones iniciales para representar el sistema de forma general.
-
-## Modelo de clases
-
-```mermaid
-classDiagram
-    class Cuenta {
-        +id
-        +nombre
-    }
-
-    class Movimiento {
-        +id
-        +monto
-        +estado
-    }
-
-    Cuenta "1" --> "0..*" Movimiento
-```
+Diagramas actualizados con los modulos definidos en la especificacion.
 
 ## Componentes principales
 
 ```mermaid
 flowchart LR
-    Acceso[Acceso personal]
-    Cuentas[Cuentas]
-    Movimientos[Movimientos]
-    Categorias[Categorias]
-    Recurrentes[Pagos recurrentes]
+    Auth[Acceso personal]
+    Accounts[Cuentas]
+    Categories[Categorias]
+    Movements[Movimientos]
+    Recurring[Pagos recurrentes]
     Variables[Pagos variables]
-    Suscripciones[Suscripciones]
-    Metas[Metas]
-    Prestamos[Prestamos por cobrar]
-    Deudas[Deudas por pagar]
-    Dashboard[Dashboard y analisis]
+    Subscriptions[Suscripciones]
+    Loans[Prestamos]
+    Debts[Deudas]
+    Goals[Metas]
+    Budgets[Presupuestos]
+    MonthlyPlans[Planes mensuales]
+    Dashboard[Dashboard y reportes]
 
-    Acceso --> Cuentas
-    Cuentas --> Movimientos
-    Categorias --> Movimientos
-    Recurrentes --> Movimientos
-    Variables --> Movimientos
-    Suscripciones --> Movimientos
-    Metas --> Movimientos
-    Prestamos --> Movimientos
-    Deudas --> Movimientos
-    Movimientos --> Dashboard
+    Auth --> Accounts
+    Auth --> Categories
+    Auth --> Movements
+    Accounts --> Movements
+    Categories --> Movements
+    Recurring --> Movements
+    Variables --> Movements
+    Subscriptions --> Movements
+    Loans --> Movements
+    Debts --> Movements
+    Goals --> Movements
+    Categories --> Budgets
+    Accounts --> MonthlyPlans
+    Movements --> MonthlyPlans
+    Movements --> Dashboard
+    Budgets --> Dashboard
+    MonthlyPlans --> Dashboard
+```
+
+## Modelo simple de clases
+
+```mermaid
+classDiagram
+    class Account {
+        +id
+        +name
+        +type
+        +currentBalance
+        +status
+    }
+
+    class Movement {
+        +id
+        +type
+        +status
+        +amount
+        +period
+        +sourceType
+    }
+
+    class Category {
+        +id
+        +type
+        +name
+    }
+
+    Account "1" --> "0..*" Movement
+    Category "1" --> "0..*" Movement
 ```
 
 ## Archivos fuente

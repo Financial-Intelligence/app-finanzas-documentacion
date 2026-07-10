@@ -1,33 +1,64 @@
-﻿# 06 - Riesgos y pendientes
+# 06 - Riesgos y pendientes
 
 ## Estado del documento
 
-Documento para controlar riesgos, dudas y temas abiertos.
+Actualizado con los avances actuales.
 
 ## Riesgos actuales
 
-- Duplicar ingresos al contar un ingreso pendiente y luego confirmado.
-- Duplicar gastos entre suscripciones y pagos recurrentes.
-- Confundir ahorro con gasto.
-- Confundir prestamo con gasto definitivo.
-- Confundir deuda con ingreso libre.
-- Perder historial al eliminar movimientos.
-- Calcular diferente el mismo dato en distintos modulos.
+### Duplicar movimientos
 
-## Avances cerrados
+Un recurrente, variable, suscripcion, prestamo, deuda o meta no debe generar dos movimientos por la misma accion.
 
-- Modulo de cuentas base implementado en backend.
-- Cuenta principal por usuario implementada con `isPrimary`.
-- Saldo total separado de credito disponible.
-- Inactivacion de cuentas en vez de eliminacion fisica.
+Control esperado:
+
+- Usar `source_type`.
+- Usar `source_id`.
+- Validar estado antes de registrar.
+- Usar restricciones unicas por periodo cuando aplique.
+
+### Mezclar saldo real con proyeccion
+
+Pendiente no debe modificar saldo real.
+
+Confirmado si debe afectar saldo.
+
+### Duplicar suscripciones como recurrentes
+
+Las suscripciones son modulo independiente.
+
+No deben registrarse tambien como pago recurrente normal.
+
+### Borrado fisico accidental
+
+Cuentas, categorias, movimientos y entidades importantes deben conservar historial.
+
+La accion normal debe ser inactivar, cancelar o usar borrado logico.
+
+### Calculos distintos entre modulos
+
+Dashboard, cuentas y reportes deben leer la misma fuente de datos.
+
+No deben calcular cada uno con reglas distintas.
+
+### Tarjetas de credito
+
+Ya aparecen dentro de cuentas, pero no deben mezclarse con saldo total.
+
+Queda pendiente su logica financiera completa.
 
 ## Pendientes principales
 
-- Definir resultado real.
-- Definir cierre mensual.
-- Definir reglas de edicion de meses pasados.
-- Definir dashboard.
-- Definir reportes.
-- Definir logica avanzada de tarjetas de credito: consumo usado, fechas de corte, pagos y deuda pendiente.
-- Definir alcance de importacion desde Excel.
-
+1. Implementar modulo Movimientos.
+2. Conectar movimientos confirmados con saldos reales.
+3. Implementar Categorias.
+4. Implementar pagos recurrentes y ocurrencias.
+5. Implementar pagos variables.
+6. Implementar suscripciones.
+7. Implementar prestamos y cobros.
+8. Implementar deudas y pagos.
+9. Implementar metas y aportes.
+10. Implementar presupuestos.
+11. Implementar dashboard y reportes.
+12. Completar modelo fisico con migraciones reales cuando existan.
+13. Actualizar ERD desde la base real cuando el backend avance.

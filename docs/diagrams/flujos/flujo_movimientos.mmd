@@ -1,12 +1,14 @@
 flowchart TD
     Origen[Modulo origen]
-    Validacion[Validar datos]
-    Movimiento[Crear o actualizar movimiento]
-    Cuenta[Actualizar cuenta si corresponde]
-    Historial[Guardar historial]
+    Movement[movements]
+    Estado{Estado}
+    Proyeccion[Participa en proyeccion]
+    Saldo[Actualiza saldo real]
+    Dashboard[Dashboard y reportes]
 
-    Origen --> Validacion
-    Validacion --> Movimiento
-    Movimiento --> Cuenta
-    Movimiento --> Historial
+    Origen --> Movement
+    Movement --> Estado
+    Estado -->|pending| Proyeccion
+    Estado -->|confirmed| Saldo
+    Movement --> Dashboard
 

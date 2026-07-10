@@ -1,12 +1,12 @@
 flowchart TD
-    Movimiento[Movimiento confirmado]
-    Tipo{Tipo de movimiento}
-    Ingreso[Aumenta saldo]
-    Egreso[Disminuye saldo]
-    Transferencia[Mueve saldo entre cuentas]
+    Usuario[Usuario autenticado]
+    API[API cuentas]
+    Validacion[Validar datos]
+    Accounts[accounts]
+    Summary[Resumen de cuentas]
 
-    Movimiento --> Tipo
-    Tipo --> Ingreso
-    Tipo --> Egreso
-    Tipo --> Transferencia
+    Usuario --> API
+    API --> Validacion
+    Validacion --> Accounts
+    Accounts --> Summary
 

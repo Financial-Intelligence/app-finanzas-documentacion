@@ -4,7 +4,6 @@ sequenceDiagram
     participant Movimientos
     participant Cuentas
 
-    Usuario->>Recurrentes: Confirma pago
+    Usuario->>Recurrentes: Registra pago
     Recurrentes->>Movimientos: Registra movimiento confirmado
     Movimientos->>Cuentas: Actualiza saldo relacionado
-

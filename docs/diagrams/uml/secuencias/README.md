@@ -2,7 +2,7 @@
 
 Estos diagramas muestran flujos iniciales entre usuario, modulos y movimientos.
 
-## Confirmar pago recurrente
+## Registrar pago recurrente
 
 ```mermaid
 sequenceDiagram
@@ -11,7 +11,7 @@ sequenceDiagram
     participant Movimientos
     participant Cuentas
 
-    Usuario->>Recurrentes: Confirma pago
+    Usuario->>Recurrentes: Registra pago
     Recurrentes->>Movimientos: Registra movimiento confirmado
     Movimientos->>Cuentas: Actualiza saldo relacionado
 ```
@@ -46,10 +46,9 @@ sequenceDiagram
 
 ## Archivos fuente
 
-- [Confirmar pago recurrente Mermaid](confirmar_pago_recurrente.mmd)
-- [Confirmar pago recurrente PlantUML](confirmar_pago_recurrente.puml)
+- [Registrar pago recurrente Mermaid](confirmar_pago_recurrente.mmd)
+- [Registrar pago recurrente PlantUML](confirmar_pago_recurrente.puml)
 - [Registrar prestamo Mermaid](registrar_prestamo.mmd)
 - [Registrar prestamo PlantUML](registrar_prestamo.puml)
 - [Registrar deuda Mermaid](registrar_deuda.mmd)
 - [Registrar deuda PlantUML](registrar_deuda.puml)
-

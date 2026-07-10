@@ -11,6 +11,8 @@ Repositorio de documentacion y arquitectura del sistema financiero.
 - [Decisiones de arquitectura](docs/05_decisiones_arquitectura.md)
 - [Riesgos y pendientes](docs/06_riesgos_y_pendientes.md)
 - [Arquitectura base del sistema](docs/07_arquitectura_base_sistema.md)
+- [Avance backend modulo cuentas](docs/08_avance_cuentas_backend.md)
+- [Especificacion base de datos y API](FINANCE_APP_DATABASE_AND_API_SPEC.md)
 
 ## Diagramas visuales
 

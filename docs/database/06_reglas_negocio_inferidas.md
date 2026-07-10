@@ -2,22 +2,29 @@
 
 ## Estado del documento
 
-Pendiente de completar despues de revisar controladores, servicios, validaciones y consultas SQL.
+Actualizado desde la especificacion y el avance real de cuentas.
 
-## Objetivo
+## Reglas confirmadas por documentacion actual
 
-Registrar reglas detectadas desde el codigo o base de datos.
+| Regla | Fuente |
+| --- | --- |
+| `movements` es la fuente central de verdad. | Especificacion base de datos/API. |
+| Solo movimientos confirmados afectan saldos reales. | Especificacion base de datos/API. |
+| Pendientes participan en proyeccion. | Especificacion base de datos/API. |
+| Cuentas no se eliminan fisicamente. | Avance backend cuentas. |
+| Inactivar cuenta reemplaza eliminar. | Avance backend cuentas. |
+| Primera cuenta se marca principal automaticamente. | Avance backend cuentas. |
+| Solo puede existir una cuenta principal por usuario. | Avance backend cuentas. |
+| Tarjetas de credito no suman al saldo total. | Avance backend cuentas. |
+| Tarjetas de credito suman al credito disponible. | Avance backend cuentas. |
+| Recurrentes se registraran como pago conservando monto previsto y monto real. | Avance backend cuentas. |
 
-## Importante
+## Reglas inferidas para validar al implementar
 
-Toda regla inferida debe indicar su fuente.
-
-Ejemplos de fuente:
-
-- Codigo fuente.
-- Migracion.
-- Script SQL.
-- Constraint de base de datos.
-- Documentacion existente.
-- Confirmacion del usuario.
+| Regla | Motivo |
+| --- | --- |
+| Si una cuenta esta inactiva, no deberia recibir nuevos movimientos manuales. | Evita usar cuentas desactivadas. |
+| Si se cambia el estado de una cuenta principal a inactiva, debe quedar sin principal. | Ya confirmado parcialmente. |
+| Si un movimiento confirmado se edita, debe recalcular saldos. | Necesario para consistencia. |
+| Si una ocurrencia ya fue registrada, no debe registrarse otra vez en el mismo periodo. | Evita duplicados. |
 

@@ -1,15 +1,20 @@
-// ERD en DBML.
-// Pendiente de completar con la estructura real de PostgreSQL.
+// Vista reducida. El modelo completo esta en sistema_completo.dbml.
 
-Table cuentas {
-  id int [pk]
-  nombre varchar
+Table users {
+  id uuid [pk]
+  email varchar [unique]
 }
 
-Table movimientos {
-  id int [pk]
-  cuenta_id int [ref: > cuentas.id]
-  monto decimal
-  estado varchar
+Table accounts {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  name varchar
+}
+
+Table movements {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  account_id uuid [ref: > accounts.id]
+  amount decimal
 }
 

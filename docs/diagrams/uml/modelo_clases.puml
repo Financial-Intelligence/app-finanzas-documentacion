@@ -1,18 +1,28 @@
-﻿@startuml
-class Cuenta {
+@startuml
+class Account {
   +id
-  +nombre
-  +tipo
-  +saldoActual
-  +esPrincipal
+  +name
+  +type
+  +currentBalance
+  +status
 }
 
-class Movimiento {
+class Movement {
   +id
-  +monto
-  +estado
+  +type
+  +status
+  +amount
+  +period
+  +sourceType
 }
 
-Cuenta "1" --> "0..*" Movimiento
+class Category {
+  +id
+  +type
+  +name
+}
+
+Account "1" --> "0..*" Movement
+Category "1" --> "0..*" Movement
 @enduml
 

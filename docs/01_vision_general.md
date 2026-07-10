@@ -1,368 +1,151 @@
-﻿# 01 - Vision general del sistema financiero
+# 01 - Vision general del sistema financiero
 
 ## Estado del documento
 
-Este documento resume la vision general entendida hasta ahora.
+Actualizado con la especificacion `FINANCE_APP_DATABASE_AND_API_SPEC.md` y el avance real del backend del modulo de cuentas.
 
-Se debe actualizar conforme avance la conversacion y se confirmen nuevas reglas, cambios o decisiones del sistema.
+Este documento sigue siendo vivo: debe cambiar cuando el backend confirme nuevas reglas o cuando una decision cambie.
+
+## Nombre del sistema
+
+El sistema se identifica en la especificacion como **Lumen Finanzas**.
 
 ## Proposito del sistema
 
-El sistema sera una herramienta de planificacion financiera personal.
+Lumen Finanzas es una aplicacion de planificacion financiera personal mensual.
 
-No sera solamente un registro de gastos. Su objetivo principal sera ayudar al usuario a planificar cada mes, registrar lo que realmente ocurre y comparar lo planificado contra lo real.
+No busca solamente registrar gastos. Su objetivo principal es ayudar al usuario a:
 
-El sistema debe responder preguntas como:
-
-- Con cuanto dinero empiezo el mes.
-- Cuanto planeo recibir.
-- Cuanto planeo gastar.
-- Cuanto planeo ahorrar.
-- Cuanto dinero deberia sobrar al final del mes.
-- Cuanto dinero debo.
-- Cuanto dinero me deben.
-- Si estoy cumpliendo o no mi planificacion.
-- Como evoluciona mi situacion financiera mes a mes.
+- Planificar cada mes.
+- Registrar lo que realmente ocurre.
+- Comparar lo esperado contra lo real.
+- Medir cumplimiento financiero.
+- Mantener historial ordenado por periodos mensuales.
 
 ## Idea central
 
-Cada mes se trabajara con una planificacion financiera.
+Cada mes el usuario parte de un monto inicial, formado por dinero heredado del mes anterior e ingresos esperados.
 
-Al iniciar o preparar un mes, el usuario podra definir ingresos, gastos, ahorros, deudas, prestamos, suscripciones y otros compromisos previstos.
+Luego planifica:
 
-Con esa informacion, el sistema calculara un resultado esperado. Ese resultado esperado representa el sobrante estimado que deberia quedar al finalizar el mes.
-
-Al terminar el mes, el sistema tambien debera permitir calcular un resultado real. Este concepto se seguira definiendo con mas detalle durante el avance del proyecto.
-
-## Calendario y meses
-
-El sistema debe estar alineado con el calendario real.
-
-Si hoy es el ultimo dia del mes, todavia se considera el mes actual. Cuando la fecha real cambie al dia 1, el sistema ya debe considerar el nuevo mes.
-
-Ejemplo:
-
-- Si hoy es 30 de junio, el mes actual sigue siendo junio.
-- Si hoy es 1 de julio, el mes actual pasa a ser julio.
-
-El usuario tambien podra planificar meses futuros.
-
-Ejemplo:
-
-- Si esta en junio, puede preparar la planificacion de julio.
-- Esa planificacion futura debe poder verse como una vista futura separada del mes actual.
-
-La planificacion mensual no se tratara por ahora como un modulo principal independiente. Se entendera como una regla interna de calculo que se refleja dentro de cuentas, pagos recurrentes, pagos variables, suscripciones, metas, prestamos, deudas y dashboard.
-
-## Resultado esperado
-
-El resultado esperado es un calculo de planificacion.
-
-Representa cuanto dinero se espera que sobre al final del mes despues de considerar:
-
-- Monto inicial.
-- Ingresos previstos.
-- Gastos previstos.
-- Ahorros planificados.
-- Deudas previstas.
-- Prestamos que afecten el mes.
+- Ingresos.
+- Gastos.
+- Ahorros.
+- Deudas.
+- Prestamos.
 - Suscripciones.
 - Pagos recurrentes.
 - Pagos variables.
 
-Este resultado es solo una proyeccion. Puede cambiar cuando los movimientos pendientes se confirmen, se editen o se eliminen.
+Con eso se calcula un resultado esperado. Al avanzar el mes, los movimientos confirmados permiten calcular lo real.
 
-## Resultado real
+## Concepto clave: periodo mensual
 
-El resultado real se ira definiendo conforme avance el sistema.
+El sistema trabaja por periodo mensual en formato `YYYY-MM`.
 
-Por ahora se entiende que:
+Ejemplo:
 
-- Se calculara al cerrar o finalizar el mes.
-- Debe basarse en lo que realmente ocurrio.
-- Debe considerar movimientos confirmados.
-- Debe permitir comparar lo real contra lo esperado.
-- Deudas y prestamos tambien deben afectar este resultado.
+- `2026-05`
+- `2026-06`
+- `2026-07`
 
-## Monto inicial del mes
+El periodo permite separar datos por mes y tambien permite planificar meses futuros.
 
-El monto inicial del mes representa con cuanto dinero se planifica iniciar un periodo.
+## Movimiento como fuente central
 
-Puede estar formado por:
+La tabla `movements` es la fuente central de verdad financiera.
 
-- Sobrante del mes anterior.
-- Ingresos previstos del mes.
-- Otros saldos relevantes.
+Esto significa que todo lo que mueva dinero debe terminar reflejado como movimiento:
 
-Si un ingreso todavia no fue recibido, se manejara como pendiente.
+- Ingreso.
+- Egreso.
+- Transferencia.
+- Pago recurrente registrado.
+- Pago variable confirmado.
+- Pago de suscripcion.
+- Cobro de prestamo.
+- Pago de deuda.
+- Aporte a meta.
 
-## Estados de movimientos
+## Pendiente y confirmado
 
-Los movimientos del sistema tendran estados importantes:
+Un movimiento pendiente sirve para planificar.
 
-- Pendiente: el movimiento esta planificado, pero todavia no ocurrio.
-- Confirmado: el movimiento ya ocurrio.
-- Eliminado: el movimiento fue eliminado, pero sigue visible en el historial.
+Un movimiento confirmado afecta el saldo real.
 
-Un movimiento pendiente ayuda a calcular lo esperado.
-
-Un movimiento confirmado ayuda a calcular lo real.
-
-Un movimiento eliminado no desaparece completamente, porque debe poder verse en el historial.
-
-## Edicion de movimientos
-
-Un movimiento confirmado podra editarse.
-
-Cuando se edite, el dato se reemplazara. Tambien se debe poder actualizar la fecha cuando corresponda.
-
-Todo movimiento del sistema debe tener una descripcion.
-
-## Eliminacion de movimientos
-
-Eliminar desde un modulo no debe borrar automaticamente el historial.
-
-Si un movimiento se elimina, debe quedar marcado como eliminado y seguir visible.
-
-Por ahora, si se elimina desde el modulo de movimientos, tambien debe quedar visible como eliminado.
-
-## Moneda
-
-Por ahora, todo el sistema manejara una sola moneda comun para todas las cuentas.
-
-La moneda podra elegirse, pero no se manejara conversion entre monedas en esta etapa.
+Un movimiento cancelado o eliminado no debe contarse como activo, pero debe conservarse para historial cuando corresponda.
 
 ## Usuario y acceso
 
-El sistema sera de uso personal.
+El sistema es personal para cada usuario.
 
-Por ahora solo se manejara login para acceder al sistema. No habra administracion de otros usuarios ni control entre multiples usuarios.
+Puede existir mas de un usuario registrado, pero cada usuario solo ve y administra su propia informacion.
 
-El login ya esta avanzado dentro de configuraciones y guarda la informacion en base de datos.
+No se esta planteando administracion de otros usuarios, roles avanzados ni panel de administracion.
 
-## Cuentas
+El login ya existe como parte del backend.
 
-Las cuentas representan lugares donde existe o se mueve dinero.
+## Modulo cuentas: avance real
 
-Ejemplos:
+El modulo de cuentas ya tiene una primera version funcional en backend.
 
-- Cuenta bancaria.
-- Cuenta de ahorros.
-- Billetera digital.
-- Efectivo.
-- Tarjeta de credito.
+Endpoints definidos:
 
-Las tarjetas de credito ya estan contempladas en el modulo de cuentas como credito disponible separado. No suman al saldo total porque no representan dinero propio disponible.
+```text
+GET    /api/accounts
+GET    /api/accounts/summary
+POST   /api/accounts
+GET    /api/accounts/:id
+PATCH  /api/accounts/:id
+PATCH  /api/accounts/:id/status
+```
 
-Las cuentas deben permitir saber:
+Reglas confirmadas:
 
-- Cuanto dinero hay.
-- Cual es la cuenta principal del usuario.
-- Como se movio el dinero.
-- Que movimientos estan asociados.
-- Como participa la cuenta en la planificacion mensual.
+- Las cuentas pertenecen al usuario autenticado.
+- Las cuentas se crean activas por defecto.
+- No se eliminan fisicamente.
+- Inactivar una cuenta reemplaza la accion de eliminar.
+- La primera cuenta del usuario se marca como principal automaticamente.
+- Solo puede existir una cuenta principal activa por usuario.
+- Si una cuenta principal se inactiva, deja de ser principal.
+- Las tarjetas de credito no suman al saldo total.
+- Las tarjetas de credito suman al credito disponible.
+- Los movimientos reales se implementaran despues y seran los que modifiquen saldos confirmados.
 
-## Ahorro
+## Tipos de cuenta confirmados
 
-El ahorro no debe tratarse como gasto.
+```text
+BANK_ACCOUNT
+SAVINGS
+CASH
+DIGITAL_WALLET
+CREDIT_CARD
+INVESTMENT
+OTHER
+```
 
-El ahorro mensual debe trabajarse como transferencia, porque representa mover dinero de una cuenta a otra.
+## Resultado esperado y resultado real
 
-Ejemplo:
+El resultado esperado se calcula con la planificacion del periodo.
 
-- Sale dinero de una cuenta principal.
-- Ingresa dinero a una cuenta de ahorros.
+El resultado real se calcula con movimientos confirmados.
 
-Aunque reduzca el dinero disponible en una cuenta, no significa que el dinero se haya perdido.
+La comparacion entre ambos permite medir cumplimiento financiero.
 
-## Metas
+## Reglas transversales importantes
 
-Las metas representan objetivos financieros.
+- El ahorro no es gasto; se registra como transferencia.
+- Las suscripciones son un modulo separado de pagos recurrentes.
+- Los pagos variables pertenecen solo al periodo donde se crean.
+- Los pagos recurrentes y suscripciones generan ocurrencias por periodo.
+- Las categorias eliminadas se desactivan para conservar historial.
+- Las operaciones que afectan varias tablas deben hacerse de forma consistente.
 
-Ejemplos:
+## Documentos relacionados
 
-- Fondo de emergencia.
-- Viaje.
-- Compra importante.
-- Reposicion de ahorros.
-- Pago de deuda.
-
-Las metas deben considerar dinero real depositado en una cuenta y tambien medir el progreso hacia un objetivo.
-
-Cada aporte a una meta debe quedar registrado como movimiento.
-
-## Pagos recurrentes
-
-Los pagos recurrentes representan ingresos o gastos que se repiten en el tiempo.
-
-Ejemplos:
-
-- Sueldo.
-- Internet.
-- Servicios.
-- Alimentacion de mascota.
-- Pagos fijos.
-
-Los pagos recurrentes sirven para proyectar automaticamente cada mes.
-
-Si un pago recurrente todavia no ocurre, estara pendiente.
-
-Cuando se confirme, pasara a representar un movimiento real.
-
-Si el monto real es distinto al previsto, debe poder editarse o registrarse la diferencia.
-
-Ejemplo:
-
-- Se planifica comida de gato por S/10.
-- Al comprar, realmente cuesta S/8.
-- La diferencia positiva es S/2.
-
-Esa diferencia no es un ingreso nuevo. Es dinero que sobro respecto al plan.
-
-Si se planifica S/10 y se gasta S/12, la diferencia es negativa porque se gasto mas de lo esperado.
-
-## Pagos variables
-
-Los pagos variables son ingresos o gastos planificados para un mes especifico.
-
-No se copian automaticamente al siguiente mes.
-
-Ejemplos:
-
-- Compra de zapatillas.
-- Concierto.
-- Viaje.
-- Regalo.
-- Venta ocasional.
-- Proyecto freelance.
-
-Los pagos variables ayudan a calcular la proyeccion de un mes concreto.
-
-## Suscripciones
-
-Las suscripciones seran un modulo separado.
-
-Aunque son similares a pagos recurrentes, se manejaran de forma independiente.
-
-Ejemplos:
-
-- Netflix.
-- Spotify.
-- Disney+.
-- ChatGPT.
-- Google Drive.
-- Hosting.
-
-Las suscripciones deben participar en la planificacion financiera y en los gastos previstos del mes.
-
-## Prestamos por cobrar
-
-Los prestamos por cobrar representan dinero que el usuario entrega a otra persona o entidad y espera recuperar.
-
-Por ahora, los prestamos se manejaran con pago completo.
-
-Si alguien devuelve solo una parte, se creara otro registro separado. En el futuro se podra mejorar para manejar pagos parciales.
-
-Un prestamo no debe tratarse como gasto normal, porque el dinero deberia regresar.
-
-Debe afectar cuentas, movimientos y resultado financiero.
-
-## Deudas por pagar
-
-Las deudas por pagar representan dinero que el usuario recibe y debe devolver.
-
-Por ahora, las deudas se manejaran con pago completo.
-
-No se manejaran cuotas ni intereses en esta primera etapa.
-
-Una deuda aumenta el saldo cuando se recibe el dinero, pero tambien crea una obligacion futura.
-
-Debe afectar cuentas, movimientos y resultado financiero.
-
-## Categorias
-
-Las categorias sirven para clasificar ingresos y egresos.
-
-Existiran categorias de ingresos y categorias de egresos.
-
-Tambien podran existir subcategorias.
-
-Ejemplos:
-
-- Sueldo.
-- Transporte.
-- Alimentacion.
-- Entretenimiento.
-- Servicios.
-- Suscripciones.
-- Mascotas.
-- Familia.
-
-Las categorias ayudan a ordenar movimientos, hacer filtros y preparar futuros reportes.
-
-## Movimientos
-
-El modulo de movimientos sera el historial general del sistema.
-
-Debe concentrar ingresos, egresos, transferencias, pagos de deudas, recuperacion de prestamos, aportes a metas, pagos recurrentes, pagos variables y suscripciones.
-
-Cada movimiento debe incluir como minimo:
-
-- Fecha.
-- Tipo.
-- Cuenta relacionada.
-- Monto.
-- Estado.
-- Descripcion.
-
-Los movimientos son importantes porque permiten reconstruir lo que paso con el dinero.
-
-## Historial mensual
-
-La informacion historica principal sera el historial de movimientos de mes en mes.
-
-Cada mes debe tener su propio registro.
-
-Los pagos fijos o recurrentes se pueden duplicar como parte del calculo mensual, pero no deben contarse como confirmados hasta que realmente ocurran.
-
-Los meses pasados podran modificarse, pero el sistema debe cuidar que el historial siga siendo entendible.
-
-## Riesgos conceptuales detectados
-
-Estos riesgos deben controlarse durante el diseÃ±o:
-
-- Duplicar ingresos al contar un ingreso pendiente y luego volverlo a contar al confirmarlo.
-- Duplicar gastos si una suscripcion tambien se registra como pago recurrente normal.
-- Confundir ahorro con gasto.
-- Confundir prestamo con gasto definitivo.
-- Confundir deuda con ingreso real.
-- Mezclar dinero propio con dinero que se debe devolver.
-- Perder historial al eliminar registros.
-- Cambiar meses pasados sin dejar claro que fueron modificados.
-- Mezclar planificacion futura con movimientos reales del mes actual.
-- Calcular distinto el mismo dato en diferentes partes del sistema.
-
-## Reglas para evitar riesgos
-
-- Separar siempre movimientos pendientes de movimientos confirmados.
-- No contar un movimiento dos veces.
-- Tratar el ahorro como transferencia.
-- Tratar prestamos como dinero por cobrar.
-- Tratar deudas como obligaciones por pagar.
-- Mantener movimientos eliminados visibles como historial.
-- Separar vista actual de vista futura.
-- Usar una sola logica de calculo para todo el sistema.
-- Evitar que suscripciones y pagos recurrentes dupliquen el mismo gasto.
-
-## Temas pendientes para definir mas adelante
-
-- Definicion exacta del resultado real.
-- Reglas completas de cierre mensual.
-- Forma final de mostrar diferencias positivas y negativas.
-- Reglas de modificacion de meses pasados.
-- Dashboard.
-- Reportes.
-- Presupuestos.
-- Logica futura de tarjetas de credito.
-- Posible manejo de pagos parciales en prestamos y deudas en versiones futuras.
-- Importacion desde Excel.
+- [Modulos](02_modulos.md)
+- [Reglas de negocio](03_reglas_negocio.md)
+- [Arquitectura base del sistema](07_arquitectura_base_sistema.md)
+- [Avance backend modulo cuentas](08_avance_cuentas_backend.md)
+- [Modelo fisico](database/03_modelo_fisico.md)
