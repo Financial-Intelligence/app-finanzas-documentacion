@@ -58,13 +58,15 @@ Administrar las cuentas donde existe o se mueve dinero.
 - Listar cuentas.
 - Ver detalle de cuenta.
 - Activar o inactivar cuentas.
+- Eliminar una cuenta que no sea principal.
 - Marcar una cuenta como principal.
 - Calcular resumen general de cuentas.
 - Separar saldo total de credito disponible.
 
 ### Que no hace
 
-- No elimina cuentas fisicamente.
+- No permite eliminar una cuenta principal.
+- Cuando se implemente Movimientos, debera impedirse eliminar cuentas con historial.
 - No calcula por si solo todo el resultado mensual.
 - No modifica saldos por movimientos hasta que el modulo Movimientos este implementado.
 

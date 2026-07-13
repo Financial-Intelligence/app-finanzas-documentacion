@@ -104,8 +104,9 @@ Reglas confirmadas:
 
 - Las cuentas pertenecen al usuario autenticado.
 - Las cuentas se crean activas por defecto.
-- No se eliminan fisicamente.
-- Inactivar una cuenta reemplaza la accion de eliminar.
+- Las cuentas pueden inactivarse mediante el cambio de estado.
+- Actualmente una cuenta no principal tambien puede eliminarse fisicamente.
+  Cuando exista historial de movimientos, esa eliminacion debera bloquearse.
 - La primera cuenta del usuario se marca como principal automaticamente.
 - Solo puede existir una cuenta principal activa por usuario.
 - Si una cuenta principal se inactiva, deja de ser principal.

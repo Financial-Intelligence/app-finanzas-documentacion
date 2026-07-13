@@ -20,8 +20,9 @@ Actualizado con la especificacion de base de datos/API y el avance real del modu
 
 1. Las cuentas pertenecen a un usuario.
 2. Las cuentas se crean activas por defecto.
-3. Las cuentas no se eliminan fisicamente.
-4. Inactivar una cuenta reemplaza eliminarla.
+3. Las cuentas pueden inactivarse sin borrarlas.
+4. Actualmente una cuenta no principal puede eliminarse fisicamente.
+   Cuando exista historial de movimientos, esa eliminacion debera bloquearse para protegerlo.
 5. La primera cuenta del usuario se marca como principal automaticamente.
 6. Solo una cuenta del usuario puede ser principal.
 7. Si una cuenta principal se inactiva, deja de ser principal.
@@ -93,4 +94,3 @@ Actualizado con la especificacion de base de datos/API y el avance real del modu
 3. El aporte puede ser transferencia entre cuentas.
 4. Al llegar al monto objetivo, la meta queda completada.
 5. Si vence sin completarse, puede marcarse como vencida.
-

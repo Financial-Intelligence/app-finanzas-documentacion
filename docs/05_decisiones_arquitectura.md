@@ -15,7 +15,7 @@ Actualizado con la especificacion de base de datos/API y el avance del modulo de
 7. El periodo mensual se representara como `YYYY-MM`.
 8. Las tablas criticas usaran borrado logico, no borrado fisico.
 9. Las cuentas ya tienen avance backend funcional.
-10. Las cuentas no se eliminan; se inactivan.
+10. Las cuentas pueden inactivarse. Actualmente, una cuenta no principal también puede eliminarse físicamente; cuando exista historial de movimientos, esa eliminación deberá bloquearse.
 11. Tarjetas de credito se separan del saldo total.
 12. Pagos recurrentes usaran el concepto futuro de registrar pago.
 13. Dashboard y reportes leeran datos ya calculados o registrados, no seran fuente principal.

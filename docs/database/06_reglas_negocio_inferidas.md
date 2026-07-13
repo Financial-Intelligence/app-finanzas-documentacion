@@ -11,8 +11,8 @@ Actualizado desde la especificacion y el avance real de cuentas.
 | `movements` es la fuente central de verdad. | Especificacion base de datos/API. |
 | Solo movimientos confirmados afectan saldos reales. | Especificacion base de datos/API. |
 | Pendientes participan en proyeccion. | Especificacion base de datos/API. |
-| Cuentas no se eliminan fisicamente. | Avance backend cuentas. |
-| Inactivar cuenta reemplaza eliminar. | Avance backend cuentas. |
+| Las cuentas pueden inactivarse mediante `isActive`. | Código actual del módulo Cuentas. |
+| Una cuenta no principal puede eliminarse físicamente; cuando haya movimientos con historial, deberá bloquearse. | Código actual del módulo Cuentas. |
 | Primera cuenta se marca principal automaticamente. | Avance backend cuentas. |
 | Solo puede existir una cuenta principal por usuario. | Avance backend cuentas. |
 | Tarjetas de credito no suman al saldo total. | Avance backend cuentas. |
@@ -27,4 +27,3 @@ Actualizado desde la especificacion y el avance real de cuentas.
 | Si se cambia el estado de una cuenta principal a inactiva, debe quedar sin principal. | Ya confirmado parcialmente. |
 | Si un movimiento confirmado se edita, debe recalcular saldos. | Necesario para consistencia. |
 | Si una ocurrencia ya fue registrada, no debe registrarse otra vez en el mismo periodo. | Evita duplicados. |
-

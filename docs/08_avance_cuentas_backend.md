@@ -12,6 +12,7 @@ GET    /api/accounts/summary
 POST   /api/accounts
 GET    /api/accounts/:id
 PATCH  /api/accounts/:id
+DELETE /api/accounts/:id
 PATCH  /api/accounts/:id/status
 ```
 
@@ -19,8 +20,9 @@ PATCH  /api/accounts/:id/status
 
 1. Las cuentas pertenecen a un usuario.
 2. Las cuentas se crean activas por defecto.
-3. Las cuentas no se eliminan fisicamente.
-4. Inactivar una cuenta reemplaza la accion de eliminar.
+3. Las cuentas pueden inactivarse mediante el cambio de estado.
+4. Tambien existe eliminacion fisica para cuentas que no son principales.
+   La validacion de historial de movimientos se agregara cuando exista ese modulo.
 5. Las cuentas de credito no suman al saldo total.
 6. Las cuentas de credito suman al credito disponible.
 7. El saldo actual de una cuenta normal nace desde el saldo inicial.
@@ -52,6 +54,7 @@ La pantalla principal de cuentas usa:
 4. `POST /api/accounts` para crear nueva cuenta.
 5. `PATCH /api/accounts/:id` para editar.
 6. `PATCH /api/accounts/:id/status` para activar o inactivar.
+7. `DELETE /api/accounts/:id` para eliminar una cuenta que no sea principal.
 
 ## Regla de resumen
 
@@ -82,13 +85,14 @@ El modulo de cuentas queda completo para el alcance actual del backend.
 
 Incluye:
 
-1. CRUD base sin eliminacion fisica.
+1. CRUD base, con eliminacion fisica restringida para cuentas no principales.
 2. Listado por usuario autenticado.
 3. Filtro por activas, inactivas o todas.
 4. Resumen de saldo total y credito disponible.
 5. Cuenta principal por usuario.
 6. Tarjetas de credito separadas del saldo total.
 7. Documentacion Swagger y README del backend actualizados.
+8. Validacion de propiedad: cada operacion solo accede a cuentas del usuario autenticado.
 
 Queda pendiente para otro modulo:
 

@@ -138,7 +138,7 @@ Convenciones globales:
 - **PK:** `id UUID` (default `gen_random_uuid()`).
 - **Tenant:** `user_id UUID` en todas las tablas de negocio (multi-usuario).
 - **Timestamps:** `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`, `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
-- **Soft delete:** `deleted_at TIMESTAMPTZ NULL` en tablas críticas (cuentas, categorías, subcategorías, movimientos, recurrentes, suscripciones, préstamos, deudas, metas).
+- **Soft delete:** `deleted_at TIMESTAMPTZ NULL` en entidades con historial (categorías, subcategorías, movimientos, recurrentes, suscripciones, préstamos, deudas, metas). La implementación actual de cuentas no usa `deleted_at`.
 - **Dinero:** `DECIMAL(14,2)` (nunca float).
 - **Período:** `period CHAR(7)` con formato `YYYY-MM`.
 - **Índice implícito** en toda FK; se listan los índices adicionales relevantes.
@@ -177,30 +177,31 @@ Campos:
 
 | Campo           | Tipo           | Requerido | Descripción                                        |
 | --------------- | -------------- | --------- | -------------------------------------------------- |
-| id              | UUID           | Sí        | Identificador único                                |
-| user_id         | UUID           | Sí        | FK → users                                         |
+| id              | INT            | Sí        | Identificador único                                |
+| user_id         | INT            | Sí        | FK → users                                         |
 | name            | VARCHAR(120)   | Sí        | Nombre (ej. "BCP Sueldo")                          |
 | type            | account_type   | Sí        | Tipo de cuenta                                     |
-| bank_name       | VARCHAR(120)   | No        | Banco/entidad (ej. "BCP", "Yape")                 |
+| institution     | VARCHAR(120)   | No        | Banco/entidad (ej. "BCP", "Yape")                 |
 | currency        | currency       | Sí        | Moneda de la cuenta (default `PEN`)                |
 | initial_balance | DECIMAL(14,2)  | Sí        | Saldo inicial al crear                             |
-| current_balance | DECIMAL(14,2)  | Sí        | Saldo actual (derivado de movimientos confirmados) |
-| credit_limit    | DECIMAL(14,2)  | No        | Límite (solo `credit_card`)                        |
-| color           | VARCHAR(9)     | No        | Color hex de UI                                    |
-| emoji           | VARCHAR(8)     | No        | Iniciales/emoji                                    |
-| tag             | VARCHAR(40)    | No        | Etiqueta libre (ej. "Principal")                  |
-| status          | account_status | Sí        | Estado (default `active`)                          |
-| last_movement_at| TIMESTAMPTZ    | No        | "Última actualización" mostrada en UI              |
-| deleted_at      | TIMESTAMPTZ    | No        | Soft delete                                        |
+| current_balance | DECIMAL(14,2)  | Sí        | Saldo actual; inicia con el saldo inicial en cuentas normales |
+| expected_monthly_amount | DECIMAL(14,2) | Sí      | Preparado para planificación; aún no se modifica desde este módulo |
+| credit_limit    | DECIMAL(14,2)  | No        | Límite (solo `CREDIT_CARD`)                        |
+| available_credit| DECIMAL(14,2)  | No        | Crédito disponible (solo `CREDIT_CARD`)            |
+| is_active       | BOOLEAN        | Sí        | Cuenta activa (default `true`)                      |
+| is_primary      | BOOLEAN        | Sí        | Cuenta principal del usuario (default `false`)      |
 | created_at      | TIMESTAMPTZ    | Sí        | —                                                  |
 | updated_at      | TIMESTAMPTZ    | Sí        | —                                                  |
 
-- **Relaciones:** N—1 users; 1—N movements (como cuenta origen y como destino).
-- **Índices:** `(user_id, status)`, `(user_id, type)`.
-- **Reglas:** `current_balance` se recalcula/actualiza al confirmar, editar o eliminar movimientos confirmados
-  (ver §6). `credit_limit` solo aplica a tarjetas; disponible = `credit_limit - current_balance`.
-  En v1 las tarjetas de crédito son visuales, no operativas.
-- **Enums:** `account_type`, `account_status`, `currency`.
+- **Relaciones actuales:** N—1 users. La relación con movements se agregará con ese módulo.
+- **Índices:** `(user_id)`, `(user_id, is_active)`, `(user_id, is_primary)`, `(user_id, type)` y nombre único por usuario.
+- **Reglas actuales:** al crear una cuenta normal, `current_balance` inicia con `initial_balance`.
+  Las tarjetas guardan saldo inicial y actual en cero, requieren `credit_limit` y, si no se indica
+  `available_credit`, este inicia con el mismo valor del límite. La primera cuenta del usuario se marca
+  como principal y solo una cuenta por usuario puede ser principal.
+- **Eliminación actual:** una cuenta no principal puede eliminarse físicamente. Cuando exista el módulo
+  Movimientos se deberá bloquear la eliminación de cuentas con historial.
+- **Enums actuales:** `BANK_ACCOUNT`, `SAVINGS`, `CASH`, `DIGITAL_WALLET`, `CREDIT_CARD`, `INVESTMENT`, `OTHER`.
 
 ---
 
@@ -803,7 +804,9 @@ Detalle de cuenta. Response: cuenta + `monthlyPlan` del período actual (o `?per
 Edita cuenta. Body: `UpdateAccountDto` (parcial). Response: cuenta actualizada.
 
 #### DELETE /api/accounts/:id
-Desactiva cuenta (soft delete → `status='archived'`). Response `204`. Regla: no elimina movimientos.
+Elimina físicamente una cuenta que no sea principal. Response `200`: `{ "message": "Cuenta eliminada correctamente" }`.
+Si la cuenta es principal responde `409`. Cuando exista el módulo Movimientos, también se deberá impedir
+la eliminación si tiene historial.
 
 #### GET /api/accounts/:id/summary
 Resumen mensual de la cuenta. Query: `period`. Response:
@@ -1276,7 +1279,7 @@ presupuestos. *Habilita: Metas, Dashboard, Reportes, Presupuestos, Calendario.*
 - **ORM:** **Prisma** (enums nativos, migraciones, relaciones tipadas).
 - **IDs:** **UUID** como PK en todas las tablas (`@default(uuid())`).
 - **Auth:** **JWT** (access token corto + refresh token con rotación y revocación en `refresh_tokens`).
-- **Soft delete:** `deleted_at` / `is_active` en tablas críticas (cuentas, categorías, subcategorías, movimientos, recurrentes, variables, suscripciones, préstamos, deudas, metas).
+- **Soft delete:** `deleted_at` / `is_active` en entidades con historial. La implementación actual de cuentas usa `is_active` para inactivar, pero también permite eliminar físicamente cuentas no principales.
 - **Timestamps:** `created_at` y `updated_at` en todas las tablas.
 - **Dinero:** `Decimal(14,2)` (Prisma `Decimal`); nunca punto flotante.
 - **Moneda:** base **PEN**, esquema preparado para multi-moneda (campo `currency` por cuenta/movimiento; tipo de cambio en fase 5).

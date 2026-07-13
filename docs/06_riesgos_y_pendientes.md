@@ -29,11 +29,12 @@ Las suscripciones son modulo independiente.
 
 No deben registrarse tambien como pago recurrente normal.
 
-### Borrado fisico accidental
+### Borrado fisico con historial
 
-Cuentas, categorias, movimientos y entidades importantes deben conservar historial.
+Actualmente el modulo Cuentas permite borrar fisicamente una cuenta que no sea principal.
+Cuando Movimientos exista, se debe impedir el borrado si la cuenta tiene historial.
 
-La accion normal debe ser inactivar, cancelar o usar borrado logico.
+Para entidades con historial, la accion normal debe ser inactivar, cancelar o usar borrado logico.
 
 ### Calculos distintos entre modulos
 
