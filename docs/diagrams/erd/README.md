@@ -4,7 +4,9 @@ Diagramas actualizados con la especificacion de base de datos/API.
 
 ## Diagrama completo recomendado
 
-- [ERD completo del sistema](sistema_completo.md)
+- [ERD actual implementado: cuentas, categorias y movimientos](erd_actual_movimientos.mmd)
+
+- [ERD completo objetivo del sistema](sistema_completo.md)
 - [Fuente Mermaid completa](sistema_completo.mmd)
 - [Fuente DBML completa](sistema_completo.dbml)
 

@@ -15,23 +15,39 @@ Actualizado con la especificacion de base de datos/API y el avance real del modu
 7. El dinero debe manejarse con decimal, no con numeros aproximados.
 8. El periodo mensual usa formato `YYYY-MM`.
 9. Las operaciones que afectan varias tablas deben hacerse juntas para evitar datos inconsistentes.
+10. El selector anual puede mostrar los doce meses sin crear registros ni ejecutar doce consultas.
+11. Cambiar el año visible no prepara periodos; seleccionar un mes si consulta ese periodo.
+12. El mes inicial del frontend se calcula con la zona horaria `America/Lima`.
 
 ## Reglas de cuentas
 
 1. Las cuentas pertenecen a un usuario.
 2. Las cuentas se crean activas por defecto.
 3. Las cuentas pueden inactivarse sin borrarlas.
-4. Actualmente una cuenta no principal puede eliminarse fisicamente.
-   Cuando exista historial de movimientos, esa eliminacion debera bloquearse para protegerlo.
+4. Una cuenta no principal solo puede eliminarse fisicamente si nunca tuvo movimientos.
 5. La primera cuenta del usuario se marca como principal automaticamente.
 6. Solo una cuenta del usuario puede ser principal.
 7. Si una cuenta principal se inactiva, deja de ser principal.
 8. Las tarjetas de credito no suman al saldo total.
 9. Las tarjetas de credito suman al credito disponible.
 10. El saldo actual de una cuenta normal nace desde el saldo inicial.
-11. Los movimientos confirmados modificaran saldos cuando el modulo Movimientos este implementado.
+11. Los movimientos confirmados modifican saldos dentro de una transaccion de base de datos.
 
 ## Reglas de movimientos
+
+Estado implementado al 2026-07-15:
+
+- Los pendientes no cambian saldo.
+- Los confirmados cambian saldo.
+- Ingresos y egresos nacen pendientes.
+- El monto esperado se conserva y el saldo usa el monto real confirmado.
+- Una transferencia inmediata puede nacer confirmada; una programada nace pendiente.
+- Los cancelados no cuentan y conservan historial.
+- Gastos y transferencias requieren saldo suficiente.
+- Las transferencias requieren cuentas distintas y de la misma moneda.
+- Las cuentas inactivas y `CREDIT_CARD` no aceptan nuevos movimientos.
+- Editar, cancelar o eliminar logicamente un confirmado revierte primero su efecto anterior.
+- Solo los movimientos manuales se editan o eliminan desde la API general.
 
 1. `income` suma a la cuenta.
 2. `expense` resta a la cuenta.
@@ -46,6 +62,10 @@ Actualizado con la especificacion de base de datos/API y el avance real del modu
 1. Las categorias se dividen en ingreso y egreso.
 2. Una categoria puede tener subcategorias.
 3. El total mensual por categoria usa solo movimientos confirmados.
+4. Cada categoria pertenece a un periodo `YYYY-MM`.
+5. El primer acceso a un mes copia las categorias activas del ultimo mes anterior.
+6. Editar o eliminar una categoria de agosto no modifica julio.
+7. Una categoria o subcategoria usada por movimientos visibles no puede eliminarse hasta reclasificar o eliminar esos movimientos.
 4. Una categoria usada historicamente no debe borrarse fisicamente.
 
 ## Reglas de pagos recurrentes

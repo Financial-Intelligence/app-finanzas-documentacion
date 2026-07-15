@@ -2,14 +2,14 @@
 
 ## Estado del documento
 
-Actualizado con la especificacion actual.
+Actualizado con la especificacion objetivo y el modelo implementado al 2026-07-15.
 
 ## Convenciones logicas
 
 - Cada tabla de negocio pertenece a un usuario mediante `user_id`.
 - El periodo mensual se guarda como `period` en formato `YYYY-MM`.
 - El dinero se representa como decimal.
-- Las relaciones principales usan identificadores UUID.
+- El codigo implementado usa identificadores `Int`; los UUID quedan como una propuesta historica no aplicada.
 - Las tablas criticas usan borrado logico con `deleted_at` o estado.
 
 ## Entidades y relaciones principales
@@ -18,6 +18,7 @@ Actualizado con la especificacion actual.
 | --- | --- | --- | --- |
 | Usuario | tiene | Cuentas | 1 a muchos |
 | Usuario | tiene | Categorias | 1 a muchos |
+| Usuario | inicializa | Periodos de categorias | 1 a muchos |
 | Categoria | contiene | Subcategorias | 1 a muchos |
 | Usuario | registra | Movimientos | 1 a muchos |
 | Cuenta | participa en | Movimientos | 1 a muchos |
@@ -39,3 +40,4 @@ Actualizado con la especificacion actual.
 
 Las relaciones con `source_type` y `source_id` permiten saber de que modulo nacio un movimiento.
 
+Cada categoria implementada incluye `period`. `CategoryPeriod(user_id, period)` es unico y evita volver a copiar categorias eliminadas cuando se consulta nuevamente un mes.

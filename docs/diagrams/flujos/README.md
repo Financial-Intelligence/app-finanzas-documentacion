@@ -57,7 +57,7 @@ flowchart TD
 ## Archivos fuente
 
 - [Flujo de movimientos](flujo_movimientos.mmd)
+- [Flujo de categorias mensuales](flujo_categorias_mensuales.mmd)
 - [Flujo de cuentas](flujo_cuentas.mmd)
 - [Flujo de cierre de mes](flujo_cierre_mes.mmd)
 - [Flujo de resultado esperado](flujo_resultado_esperado.mmd)
-

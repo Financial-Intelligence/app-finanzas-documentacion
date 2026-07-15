@@ -47,10 +47,23 @@ GET /api/accounts/summary
 ## Flujo futuro: registrar movimiento
 
 1. El usuario o modulo origen crea un movimiento.
-2. El movimiento queda pendiente o confirmado.
-3. Si queda confirmado, afecta saldo.
-4. Si queda pendiente, solo participa en proyeccion.
-5. Se guarda `source_type` y `source_id` si viene de otro modulo.
+2. Ingresos y egresos quedan pendientes con un monto esperado.
+3. Al confirmar se registran monto real y correcciones del formulario.
+4. Solo el monto real confirmado afecta saldo.
+5. Una transferencia inmediata puede confirmarse al crearla; una programada queda pendiente.
+
+## Flujo mensual de categorias
+
+1. El usuario abre el selector anual de meses.
+2. El frontend muestra doce meses en cuadricula 4 por 3 sin consultar los doce periodos.
+3. Cambiar el año visible no crea datos.
+4. El usuario selecciona un mes y el frontend construye el periodo `YYYY-MM`.
+5. El frontend consulta categorias y movimientos de ese periodo.
+6. Si el periodo nunca fue inicializado, se copian categorias y subcategorias del ultimo mes anterior.
+7. Desde ese momento el mes queda independiente.
+8. Las tarjetas suman solo montos reales confirmados del periodo.
+9. El borrado se bloquea si existen movimientos visibles que usan la categoria o subcategoria.
+10. Se guarda `source_type` y `source_id` si viene de otro modulo.
 
 Endpoints previstos:
 
@@ -106,4 +119,3 @@ POST /api/movements/transfer
 2. Se crea movimiento, normalmente como transferencia.
 3. Se incrementa avance de la meta.
 4. Si llega al monto objetivo, la meta queda completada.
-

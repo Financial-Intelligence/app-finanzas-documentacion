@@ -15,6 +15,7 @@ Representar las entidades principales del negocio en lenguaje simple.
 | Usuario | Persona que usa el sistema y posee sus datos financieros. |
 | Cuenta | Lugar donde existe o se mueve dinero. |
 | Categoria | Clasificacion de ingresos o egresos. |
+| Periodo de categorias | Marca que la configuracion de un mes ya fue copiada e independizada. |
 | Subcategoria | Detalle dentro de una categoria. |
 | Movimiento | Registro central de ingreso, egreso o transferencia. |
 | Pago recurrente | Ingreso o egreso que se repite. |
@@ -37,4 +38,3 @@ Representar las entidades principales del negocio en lenguaje simple.
 El movimiento es la entidad que une el sistema.
 
 Todo modulo que afecte dinero debe terminar generando o relacionandose con un movimiento.
-

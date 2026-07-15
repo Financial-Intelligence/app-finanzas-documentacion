@@ -1,0 +1,59 @@
+erDiagram
+    User ||--o{ Account : owns
+    User ||--o{ Category : owns
+    User ||--o{ CategoryPeriod : initializes
+    User ||--o{ Movement : registers
+    Category ||--o{ Subcategory : contains
+    Category o|--o{ Movement : classifies
+    Subcategory o|--o{ Movement : details
+    Account ||--o{ Movement : origin
+    Account o|--o{ Movement : destination
+
+    User {
+        int id PK
+        string email UK
+    }
+    Account {
+        int id PK
+        int userId FK
+        decimal currentBalance
+        string currency
+        boolean isActive
+    }
+    Category {
+        int id PK
+        int userId FK
+        string period
+        CategoryType type
+        string name
+    }
+    CategoryPeriod {
+        int id PK
+        int userId FK
+        string period UK
+        datetime initializedAt
+    }
+    Subcategory {
+        int id PK
+        int categoryId FK
+        string name
+    }
+    Movement {
+        int id PK
+        int userId FK
+        MovementType type
+        MovementStatus status
+        decimal expectedAmount
+        decimal actualAmount
+        int accountId FK
+        int toAccountId FK
+        int categoryId FK
+        int subcategoryId FK
+        string period
+        date occurredOn
+        datetime occurredAt
+        string currency
+        MovementSourceType sourceType
+        int sourceId
+        datetime deletedAt
+    }

@@ -10,6 +10,7 @@ Actualizado con la especificacion actual.
 | --- | --- | --- | --- |
 | `users` | `accounts` | 1 a muchos | Un usuario tiene muchas cuentas. |
 | `users` | `categories` | 1 a muchos | Un usuario define sus categorias. |
+| `users` | `category_periods` | 1 a muchos | Un usuario inicializa configuraciones mensuales. |
 | `categories` | `subcategories` | 1 a muchos | Una categoria puede tener varias subcategorias. |
 | `users` | `movements` | 1 a muchos | Un usuario registra muchos movimientos. |
 | `accounts` | `movements` | 1 a muchos | Una cuenta puede aparecer como origen o destino. |
@@ -40,4 +41,3 @@ Ejemplos:
 - `source_type=loan`
 - `source_type=debt`
 - `source_type=goal`
-

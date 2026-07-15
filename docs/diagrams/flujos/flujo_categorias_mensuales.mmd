@@ -1,0 +1,20 @@
+flowchart TD
+    Periodo[Usuario selecciona un mes]
+    Existe{CategoryPeriod existe}
+    Anterior[Buscar ultimo mes anterior]
+    Copiar[Copiar categorias y subcategorias]
+    Independiente[Mes independiente]
+    Editar[Crear o editar]
+    Eliminar{Categoria tiene movimientos visibles}
+    Bloquear[Bloquear y pedir reclasificar o eliminar movimientos]
+    Borrar[Eliminar solo del mes]
+    Total[Sumar actualAmount de confirmados]
+
+    Periodo --> Existe
+    Existe -->|No| Anterior --> Copiar --> Independiente
+    Existe -->|Si| Independiente
+    Independiente --> Editar
+    Independiente --> Eliminar
+    Eliminar -->|Si| Bloquear
+    Eliminar -->|No| Borrar
+    Independiente --> Total

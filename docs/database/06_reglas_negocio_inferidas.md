@@ -10,9 +10,11 @@ Actualizado desde la especificacion y el avance real de cuentas.
 | --- | --- |
 | `movements` es la fuente central de verdad. | Especificacion base de datos/API. |
 | Solo movimientos confirmados afectan saldos reales. | Especificacion base de datos/API. |
+| Ingresos y egresos nacen pendientes y conservan monto esperado y real por separado. | Flujo confirmado 2026-07-15. |
+| Las categorias se copian al inicializar un mes y luego ese mes es independiente. | Modulo Categorias mensual. |
 | Pendientes participan en proyeccion. | Especificacion base de datos/API. |
 | Las cuentas pueden inactivarse mediante `isActive`. | Código actual del módulo Cuentas. |
-| Una cuenta no principal puede eliminarse físicamente; cuando haya movimientos con historial, deberá bloquearse. | Código actual del módulo Cuentas. |
+| Una cuenta no principal puede eliminarse fisicamente solo si no tiene historial. | Codigo actual de Cuentas y Movimientos. |
 | Primera cuenta se marca principal automaticamente. | Avance backend cuentas. |
 | Solo puede existir una cuenta principal por usuario. | Avance backend cuentas. |
 | Tarjetas de credito no suman al saldo total. | Avance backend cuentas. |

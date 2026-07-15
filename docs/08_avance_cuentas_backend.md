@@ -11,6 +11,7 @@ GET    /api/accounts
 GET    /api/accounts/summary
 POST   /api/accounts
 GET    /api/accounts/:id
+GET    /api/accounts/:id/movements
 PATCH  /api/accounts/:id
 DELETE /api/accounts/:id
 PATCH  /api/accounts/:id/status
@@ -21,12 +22,11 @@ PATCH  /api/accounts/:id/status
 1. Las cuentas pertenecen a un usuario.
 2. Las cuentas se crean activas por defecto.
 3. Las cuentas pueden inactivarse mediante el cambio de estado.
-4. Tambien existe eliminacion fisica para cuentas que no son principales.
-   La validacion de historial de movimientos se agregara cuando exista ese modulo.
+4. Tambien existe eliminacion fisica para cuentas que no son principales y no tienen historial.
 5. Las cuentas de credito no suman al saldo total.
 6. Las cuentas de credito suman al credito disponible.
 7. El saldo actual de una cuenta normal nace desde el saldo inicial.
-8. Los movimientos se implementaran despues y seran los que modifiquen saldos confirmados.
+8. Los movimientos confirmados ya modifican saldos reales.
 9. La primera cuenta del usuario se marca como principal automaticamente.
 10. `isPrimary` permite marcar una cuenta principal.
 11. Solo una cuenta del usuario puede quedar como principal.
@@ -54,7 +54,8 @@ La pantalla principal de cuentas usa:
 4. `POST /api/accounts` para crear nueva cuenta.
 5. `PATCH /api/accounts/:id` para editar.
 6. `PATCH /api/accounts/:id/status` para activar o inactivar.
-7. `DELETE /api/accounts/:id` para eliminar una cuenta que no sea principal.
+7. `DELETE /api/accounts/:id` para eliminar una cuenta que no sea principal ni tenga historial.
+8. `GET /api/accounts/:id/movements` para consultar el historial paginado.
 
 ## Regla de resumen
 
@@ -96,7 +97,6 @@ Incluye:
 
 Queda pendiente para otro modulo:
 
-1. Movimientos reales.
-2. Graficos reales por mes.
-3. Resultado esperado y real mensual.
-4. Pagos recurrentes, variables, deudas, prestamos y metas.
+1. Graficos reales por mes.
+2. Resultado esperado y real mensual.
+3. Pagos recurrentes, variables, deudas, prestamos y metas.

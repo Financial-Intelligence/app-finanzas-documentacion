@@ -11,7 +11,8 @@ classDiagram
         +id
         +type
         +status
-        +amount
+        +expectedAmount
+        +actualAmount
         +period
         +sourceType
     }
@@ -20,8 +21,8 @@ classDiagram
         +id
         +type
         +name
+        +period
     }
 
     Account "1" --> "0..*" Movement
     Category "1" --> "0..*" Movement
-

@@ -24,7 +24,9 @@ Si se elimina fisicamente una cuenta, categoria o movimiento, se puede romper hi
 
 ### Saldos inconsistentes
 
-Cuando movimientos se implementen, editar o cancelar movimientos confirmados debe recalcular saldos.
+Implementado: editar, cancelar o eliminar logicamente movimientos confirmados revierte el efecto anterior sobre saldos.
+
+Implementado: la marca `CategoryPeriod` impide que una categoria borrada vuelva a copiarse al consultar nuevamente el mismo mes.
 
 ### Duplicidad de origen
 
@@ -41,4 +43,3 @@ Las tarjetas de credito no deben sumar al saldo total.
 3. Agregar indices por `user_id`, `period`, `status` y `source_type`.
 4. Usar transacciones cuando una operacion toque varias tablas.
 5. Actualizar esta documentacion cada vez que cambie el backend.
-

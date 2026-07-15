@@ -31,8 +31,7 @@ No deben registrarse tambien como pago recurrente normal.
 
 ### Borrado fisico con historial
 
-Actualmente el modulo Cuentas permite borrar fisicamente una cuenta que no sea principal.
-Cuando Movimientos exista, se debe impedir el borrado si la cuenta tiene historial.
+El modulo Cuentas solo permite borrar fisicamente una cuenta no principal sin historial. La relacion de base de datos tambien protege el historial.
 
 Para entidades con historial, la accion normal debe ser inactivar, cancelar o usar borrado logico.
 
@@ -50,16 +49,14 @@ Queda pendiente su logica financiera completa.
 
 ## Pendientes principales
 
-1. Implementar modulo Movimientos.
-2. Conectar movimientos confirmados con saldos reales.
-3. Implementar Categorias.
-4. Implementar pagos recurrentes y ocurrencias.
-5. Implementar pagos variables.
-6. Implementar suscripciones.
-7. Implementar prestamos y cobros.
-8. Implementar deudas y pagos.
-9. Implementar metas y aportes.
-10. Implementar presupuestos.
-11. Implementar dashboard y reportes.
-12. Completar modelo fisico con migraciones reales cuando existan.
-13. Actualizar ERD desde la base real cuando el backend avance.
+1. Implementar planes mensuales y el resumen de detalle de cuenta.
+2. Implementar pagos recurrentes y ocurrencias usando monto esperado y real.
+3. Implementar el modulo de ingresos fijos e ingresos casuales.
+4. Implementar pagos variables.
+5. Implementar suscripciones.
+6. Implementar prestamos y cobros.
+7. Implementar deudas y pagos.
+8. Implementar metas y aportes.
+9. Implementar presupuestos.
+10. Implementar dashboard y reportes.
+11. Ampliar pruebas de integracion con una base de datos exclusiva para pruebas.

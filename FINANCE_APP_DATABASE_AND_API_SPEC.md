@@ -1,5 +1,7 @@
 # Lumen Finanzas — Especificación de Base de Datos y API
 
+> **Estado implementado al 2026-07-15:** el backend actual usa IDs `Int`, no UUID. Ya existen `users`, `accounts`, `categories`, `subcategories` y `movements`. Las demás entidades de este documento siguen siendo diseño objetivo.
+
 > Documento base para el desarrollo fullstack. Derivado del análisis completo del piloto frontend
 > (Next.js 14 + React 18) ubicado en `lumen-next/`: `lib/data.js`, `lib/store.js`,
 > `components/modals.jsx` y todas las pantallas en `components/screens/`.
@@ -68,7 +70,7 @@ pero no alteran el saldo real.
 ### 2.2 Categorías
 - **Propósito:** catálogo central para clasificar ingresos y egresos, con subcategorías.
 - **Pantallas:** `Categories.jsx` (pestañas Egresos/Ingresos, tarjetas con icono, color, nº subcategorías y gastado en el mes).
-- **Acciones:** listar por tipo, crear (tipo, nombre, color, icono, subcategorías), editar, desactivar/eliminar, importar, exportar.
+- **Acciones implementadas:** listar por mes y tipo, crear, editar y eliminar con sus subcategorías. Importar/exportar queda para una fase futura.
 - **Datos del backend:** categorías con `type`, `name`, `color`, `icon`; subcategorías; total mensual **solo de movimientos confirmados**.
 - **Relaciones:** `subcategories`, `movements`, `recurring_payments`, `variable_payments`, `subscriptions`, `budgets`.
 
@@ -213,22 +215,26 @@ Campos:
 
 | Campo      | Tipo          | Requerido | Descripción                        |
 | ---------- | ------------- | --------- | ---------------------------------- |
-| id         | UUID          | Sí        | Identificador único                |
-| user_id    | UUID          | Sí        | FK → users                         |
+| id         | INT           | Sí        | Identificador único actual         |
+| user_id    | INT           | Sí        | FK → users                         |
+| period     | CHAR(7)       | Sí        | Mes independiente `YYYY-MM`        |
 | type       | category_type | Sí        | `income` o `expense`               |
 | name       | VARCHAR(80)   | Sí        | Nombre                             |
 | color      | VARCHAR(9)    | No        | Color hex                          |
 | icon       | VARCHAR(40)   | No        | Clave de icono de UI               |
 | is_active  | BOOLEAN       | Sí        | Activa (default `true`)            |
 | sort_order | INT           | No        | Orden de despliegue                |
-| deleted_at | TIMESTAMPTZ   | No        | Soft delete                        |
 | created_at | TIMESTAMPTZ   | Sí        | —                                  |
 | updated_at | TIMESTAMPTZ   | Sí        | —                                  |
 
 - **Relaciones:** 1—N subcategories; referenciada por movements, recurring_payments, variable_payments, subscriptions, budgets.
-- **Índices:** `(user_id, type, is_active)`.
-- **Reglas:** eliminar = **desactivar** (`is_active=false` / `deleted_at`), nunca borrado físico si hay movimientos históricos.
+- **Índices:** `(user_id, period)`, `(user_id, type, is_active)`, único `(user_id, period, type, name)`.
+- **Reglas actuales:** el primer acceso a un mes copia el último periodo anterior. El borrado afecta solo ese mes y se bloquea si existen movimientos visibles que usan la categoría.
 - **Enums:** `category_type`.
+
+### Tabla: category_periods
+
+Marca que las categorías de un usuario ya fueron inicializadas para un mes. Usa `id INT`, `user_id INT`, `period CHAR(7)` e `initialized_at TIMESTAMPTZ`, con único `(user_id, period)`. Evita volver a copiar una categoría eliminada del mismo mes.
 
 ---
 
@@ -261,11 +267,12 @@ Campos:
 
 | Campo             | Tipo            | Requerido | Descripción                                                     |
 | ----------------- | --------------- | --------- | --------------------------------------------------------------- |
-| id                | UUID            | Sí        | Identificador único                                             |
-| user_id           | UUID            | Sí        | FK → users                                                      |
+| id                | INT             | Sí        | Identificador único                                             |
+| user_id           | INT             | Sí        | FK → users                                                      |
 | type              | movement_type   | Sí        | `income`, `expense`, `transfer`                                 |
-| status            | movement_status | Sí        | `pending`, `confirmed`, `cancelled` (default `confirmed`)       |
-| amount            | DECIMAL(14,2)   | Sí        | Monto positivo (> 0)                                            |
+| status            | movement_status | Sí        | `pending`, `confirmed`, `cancelled` (default actual `pending`)  |
+| expected_amount   | DECIMAL(14,2)   | Sí        | Monto previsto positivo                                         |
+| actual_amount     | DECIMAL(14,2)   | No        | Monto real; nulo mientras está pendiente                        |
 | account_id        | UUID            | Sí        | FK → accounts (origen; en income = cuenta destino real)         |
 | to_account_id     | UUID            | No        | FK → accounts (destino; requerido si `type=transfer`)           |
 | category_id       | UUID            | No        | FK → categories                                                 |
@@ -277,7 +284,6 @@ Campos:
 | currency          | currency        | Sí        | Moneda (hereda de la cuenta)                                    |
 | source_type       | source_type     | Sí        | Origen: `manual`, `recurring`, `variable`, `subscription`, `loan`, `debt`, `goal`, `transfer` |
 | source_id         | UUID            | No        | ID del registro de origen (recurring/variable/subscription/loan/debt/goal) |
-| is_recurring_seed | BOOLEAN         | No        | Marca "hazlo recurrente" desde el formulario de ingreso/egreso |
 | deleted_at        | TIMESTAMPTZ     | No        | Soft delete                                                    |
 | created_at        | TIMESTAMPTZ     | Sí        | —                                                              |
 | updated_at        | TIMESTAMPTZ     | Sí        | —                                                              |
@@ -287,7 +293,8 @@ Campos:
 - **Reglas:**
   - Solo `status='confirmed'` afecta `current_balance` (ver §6).
   - `type='transfer'` requiere `to_account_id ≠ account_id`.
-  - `amount` siempre positivo; el signo lo determina `type`.
+  - Ingresos y egresos nacen pendientes. Al confirmar se guarda `actual_amount` sin cambiar `expected_amount`.
+  - El saldo usa `actual_amount`; ambos montos son positivos y el signo visual lo determina `type`.
   - Nunca borrado físico si se requiere auditoría histórica: preferir `deleted_at` o `status='cancelled'`.
 - **Enums:** `movement_type`, `movement_status`, `source_type`, `currency`.
 - **Ejemplo:** un pago de deuda genera `{ type:'expense', source_type:'debt', source_id:<debt_id>, category_id:<'Deudas'> }`.
@@ -734,7 +741,7 @@ users
 2. **Movimientos pendientes participan en la planificación pero no en el saldo real.** Se usan para proyectar el resultado esperado, no para el saldo.
 3. **Signo por tipo.** `income` suma a la cuenta; `expense` resta; `transfer` resta en `account_id` y suma en `to_account_id`.
 4. **Transferencias** deben crear salida en origen y entrada en destino de forma atómica; `to_account_id ≠ account_id`.
-5. **Categorías eliminadas se desactivan, no se borran** físicamente si tienen movimientos históricos (soft delete / `is_active=false`).
+5. **Categorías mensuales.** Se copian al inicializar un mes y luego quedan independientes. El borrado solo afecta ese periodo y se bloquea mientras existan movimientos visibles que las usen.
 6. **Total mensual por categoría** = suma de movimientos `confirmed` del período; ignora `pending` y `cancelled`.
 7. **Pagos recurrentes activos generan ocurrencias** por período; confirmar una ocurrencia crea el movimiento, marca `last_confirmed` y avanza `next_date`. **Solo se confirma una vez por período** según la frecuencia.
 8. **Pagos variables pertenecen solo a su período**; al cambiar de mes no se replican. Confirmar (una vez) crea el movimiento.
@@ -748,6 +755,7 @@ users
 16. **Multi-tenant estricto.** Toda consulta filtra por `user_id`; nunca exponer datos de otro usuario.
 17. **Consistencia transaccional.** Operaciones que tocan más de una tabla (transferencia, confirmación con movimiento, aporte a meta) se ejecutan en una transacción.
 18. **Recalcular saldo al eliminar/editar** un movimiento confirmado: revertir su efecto anterior y aplicar el nuevo.
+19. **Esperado contra real.** Ingresos y egresos nacen pendientes con `expected_amount`; al confirmar se guarda `actual_amount` y el saldo usa este último.
 
 ---
 
@@ -798,15 +806,13 @@ Lista cuentas del usuario. Query: `type`, `status`, `search`. Response:
 Crea cuenta. Body: `CreateAccountDto`. Response `201` con la cuenta. Regla: `currentBalance` inicia en `initialBalance`.
 
 #### GET /api/accounts/:id
-Detalle de cuenta. Response: cuenta + `monthlyPlan` del período actual (o `?period=YYYY-MM`).
+Detalle de cuenta. Actualmente devuelve `{ account }` e incluye `movementsCount`. El plan mensual se obtendrá desde `/summary` cuando exista ese módulo.
 
 #### PATCH /api/accounts/:id
 Edita cuenta. Body: `UpdateAccountDto` (parcial). Response: cuenta actualizada.
 
 #### DELETE /api/accounts/:id
-Elimina físicamente una cuenta que no sea principal. Response `200`: `{ "message": "Cuenta eliminada correctamente" }`.
-Si la cuenta es principal responde `409`. Cuando exista el módulo Movimientos, también se deberá impedir
-la eliminación si tiene historial.
+Elimina físicamente una cuenta que no sea principal y no tenga historial. Response `200`: `{ "message": "Cuenta eliminada correctamente" }`. Si incumple una regla responde `409`.
 
 #### GET /api/accounts/:id/summary
 Resumen mensual de la cuenta. Query: `period`. Response:
@@ -824,59 +830,50 @@ Movimientos de la cuenta. Query: `type`, `status`, `period`, `page`, `pageSize`.
 ### Categorías
 
 #### GET /api/categories
-Lista. Query: `type` (`income`/`expense`), `active`. Response: categorías con `subcategories[]` y `monthTotal` (confirmados del período).
+Lista. Query: `period=YYYY-MM`, `type=INCOME|EXPENSE`. Inicializa el mes copiando el último anterior cuando corresponde. Response: `categories[]`, `counts` y `monthTotal` calculado solo con confirmados.
 
 #### POST /api/categories
-Crea. Body: `CreateCategoryDto` (`type`, `name`, `color`, `icon`, `subcategories[]?`). Response `201`.
+Crea en el periodo indicado. Body: `{ period?, type, name, color?, icon?, subcategories[] }`. Response `201`.
+
+#### GET /api/categories/:id
+Obtiene la categoría con sus subcategorías para autorrellenar el formulario de edición.
 
 #### PATCH /api/categories/:id
-Edita nombre/color/icono. Response: categoría.
+Edita nombre, color, icono y la colección de subcategorías desde la categoría padre. Solo afecta el mes de esa categoría.
 
 #### DELETE /api/categories/:id
-Desactiva (soft). Response `204`. Regla: conserva histórico.
-
-#### POST /api/categories/:id/subcategories
-Crea subcategoría. Body: `{ name }`. Response `201`.
-
-#### PATCH /api/subcategories/:id
-Edita subcategoría. Body: `{ name?, isActive? }`.
-
-#### DELETE /api/subcategories/:id
-Desactiva subcategoría. Response `204`.
-
-#### POST /api/categories/import
-Importa configuración. Body: `{ categories: [...] }` (JSON/CSV parseado). Response: resumen `{ created, updated }`.
-
-#### GET /api/categories/export
-Exporta. Query: `format` (`json`/`csv`). Response: archivo/estructura con categorías, subcategorías, colores, iconos.
+Elimina la categoría solo de su mes. Response `200`. Si la categoría o sus subcategorías tienen movimientos visibles responde `409` y exige reclasificar o eliminar esos movimientos. Importar/exportar queda pendiente y no tiene endpoints actuales.
 
 ---
 
 ### Movimientos
 
 #### GET /api/movements
-Lista con filtros. Query: `period`, `type`, `accountId`, `categoryId`, `subcategoryId`, `status`, `search` (descripción/nombre/persona/monto), `sourceType`, `page`, `pageSize`. Response: colección + `meta.total`. Además `totals: { income, expense, transfers }` del filtro aplicado.
+Lista con filtros. Query: `period`, `type`, `accountId`, `categoryId`, `subcategoryId`, `status`, `search`, `sourceType`, `page`, `pageSize`. Response: colección + `meta.total`. `totals` contiene montos y cantidades confirmadas del mes completo, independientes de los filtros de tabla.
 
 #### POST /api/movements/income
-Crea ingreso. Body: `CreateIncomeDto`. Regla: `isRecurringSeed=true` crea también un `recurring_payment`. Response `201`.
+Crea ingreso manual siempre `PENDING` con `expectedAmount`. Response `201`.
 
 #### POST /api/movements/expense
-Crea egreso. Body: `CreateExpenseDto`. Misma regla de recurrente. Response `201`.
+Crea egreso manual siempre `PENDING` con `expectedAmount`. Response `201`.
 
 #### POST /api/movements/transfer
 Crea transferencia. Body: `CreateTransferDto`. Regla: transacción atómica origen/destino; `toAccountId ≠ accountId`. Response `201`.
 
 #### POST /api/movements/:id/confirm
-Confirma un movimiento `pending`. Response: movimiento `confirmed` + saldo de cuenta actualizado. Error `409` si ya confirmado.
+Confirma un movimiento `PENDING`. Body obligatorio: `{ actualAmount, accountId?, toAccountId?, categoryId?, subcategoryId?, date?, occurredAt?, description? }`. Permite corregir todo el formulario, conserva `expectedAmount` y actualiza el saldo con `actualAmount`.
 
 #### POST /api/movements/:id/cancel
 Cancela (`status='cancelled'`); revierte efecto en saldo si estaba confirmado. Response: movimiento.
 
 #### GET /api/movements/:id
-Detalle. Response: movimiento con `source` resuelto (link al préstamo/deuda/meta/suscripción de origen si aplica).
+Detalle. Actualmente devuelve el movimiento, sus cuentas y clasificación. La resolución del módulo de origen se agregará cuando esos módulos existan.
+
+#### PATCH /api/movements/:id
+Edita un movimiento manual no cancelado. Si estaba confirmado, revierte el saldo anterior y aplica el nuevo dentro de la misma transacción.
 
 #### DELETE /api/movements/:id
-Elimina (soft) y revierte saldo. Response `204`. Regla: solo si el módulo de origen lo permite (ej. no borrar aporte que rompería la meta sin revertir).
+Elimina de forma lógica y revierte saldo. Response actual `200` con mensaje. Solo admite movimientos manuales; los movimientos automáticos futuros se gestionarán desde su módulo de origen.
 
 ---
 
@@ -1108,6 +1105,7 @@ interface UpdateAccountDto extends Partial<CreateAccountDto> { status?: 'active'
 
 // ===== Categorías =====
 interface CreateCategoryDto {
+  period?: string;            // YYYY-MM; default America/Lima
   type: CategoryType;
   name: string;
   color?: string;
@@ -1118,20 +1116,27 @@ interface CreateCategoryDto {
 // ===== Movimientos =====
 interface CreateIncomeDto {
   amount: number;             // > 0
-  accountId: string;
-  categoryId?: string;
+  accountId: number;
+  categoryId?: number;
   date: string;               // YYYY-MM-DD
-  status?: MovementStatus;    // default 'confirmed'
   description?: string;
-  isRecurringSeed?: boolean;
 }
-interface CreateExpenseDto extends CreateIncomeDto { subcategoryId?: string; }
+interface CreateExpenseDto extends CreateIncomeDto { subcategoryId?: number; }
 interface CreateTransferDto {
   amount: number;
-  accountId: string;          // origen
-  toAccountId: string;        // destino (≠ origen)
+  accountId: number;          // origen
+  toAccountId: number;        // destino (≠ origen)
   date: string;
   status?: MovementStatus;
+  description?: string;
+}
+interface ConfirmMovementDto {
+  actualAmount: number;
+  accountId?: number;
+  toAccountId?: number;
+  categoryId?: number;
+  subcategoryId?: number;
+  date?: string;
   description?: string;
 }
 
@@ -1226,7 +1231,7 @@ Mapeo pantalla → endpoints (para reemplazar el store mock `LumenStore`/`LumenD
 - **Movimientos:** `GET /movements` con todos los filtros conectados al backend (`period`, `type`, `accountId`,
   `categoryId`, `status`, `search`). Acciones: `POST /movements/income|expense|transfer`, `/:id/confirm`, `/:id/cancel`, `DELETE`.
   El botón "Ir al origen" usa `source_type`+`source_id` del movimiento.
-- **Categorías:** `GET /categories?type=` con `monthTotal` (solo confirmados). Crear/editar/desactivar + import/export.
+- **Categorías:** `GET /categories?period=&type=` con copia mensual, `monthTotal` confirmado, creación, edición y borrado protegido. Import/export queda futuro.
 - **Pagos recurrentes:** `GET /recurring` (5 KPIs: proyectado/confirmado por tipo + próximo) y `GET /recurring/occurrences?period=`.
   Acciones confirmar/pausar/reactivar/finalizar/eliminar.
 - **Pagos variables:** `GET /variables?period=` (siempre con período). Confirmar una sola vez; import/export por período.
@@ -1237,7 +1242,7 @@ Mapeo pantalla → endpoints (para reemplazar el store mock `LumenStore`/`LumenD
 
 Datos que necesita cada formulario (drawers en `modals.jsx`):
 
-- **Ingreso/Egreso/Transferencia:** lista de cuentas (con saldo), categorías (+subcategorías por categoría), fecha, estado, flag recurrente.
+- **Ingreso/Egreso:** lista de cuentas, categorías del periodo, fecha y monto esperado; nacen pendientes. La confirmación pide monto real y permite corregir los datos. **Transferencia:** inmediata confirmada o programada pendiente.
 - **Cuenta:** tipos de cuenta (enum), monedas.
 - **Recurrente/Variable:** cuentas, categorías/subcategorías, frecuencias (enum).
 - **Suscripción:** cuentas, categorías, frecuencias.

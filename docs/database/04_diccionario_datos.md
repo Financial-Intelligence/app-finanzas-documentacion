@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-Actualizado con campos principales de la especificacion.
+Actualizado con los campos implementados de Movimientos al 2026-07-15 y los modulos objetivo restantes.
 
 ## Campos comunes
 
@@ -44,6 +44,7 @@ Actualizado con campos principales de la especificacion.
 | Campo | Descripcion |
 | --- | --- |
 | `type` | Ingreso o egreso. |
+| `period` | Mes independiente al que pertenece la categoria. |
 | `name` | Nombre de categoria. |
 | `color` | Color usado en interfaz. |
 | `icon` | Icono usado en interfaz. |
@@ -55,15 +56,19 @@ Actualizado con campos principales de la especificacion.
 | --- | --- |
 | `type` | Ingreso, egreso o transferencia. |
 | `status` | Pendiente, confirmado o cancelado. |
-| `amount` | Monto positivo. |
+| `expected_amount` | Monto previsto antes de confirmar. |
+| `actual_amount` | Monto real; es nulo mientras esta pendiente. |
 | `account_id` | Cuenta principal del movimiento. |
 | `to_account_id` | Cuenta destino cuando es transferencia. |
 | `category_id` | Categoria asociada. |
 | `subcategory_id` | Subcategoria asociada. |
 | `occurred_on` | Fecha del movimiento. |
+| `occurred_at` | Fecha y hora exacta opcional. |
 | `description` | Descripcion del movimiento. |
+| `currency` | Moneda heredada de la cuenta origen. |
 | `source_type` | Modulo que origino el movimiento. |
 | `source_id` | Registro origen dentro del modulo. |
+| `deleted_at` | Oculta logicamente un movimiento eliminado. |
 
 ## `recurring_payments`
 
@@ -145,4 +150,3 @@ Actualizado con campos principales de la especificacion.
 | `planned_debts` | Deudas previstas. |
 | `expected_result` | Resultado esperado. |
 | `real_result` | Resultado real. |
-

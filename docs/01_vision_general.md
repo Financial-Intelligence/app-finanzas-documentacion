@@ -28,7 +28,8 @@ Cada mes el usuario parte de un monto inicial, formado por dinero heredado del m
 
 Luego planifica:
 
-- Ingresos.
+- Ingresos fijos, como el sueldo.
+- Ingresos casuales u ocasionales.
 - Gastos.
 - Ahorros.
 - Deudas.
@@ -51,6 +52,8 @@ Ejemplo:
 
 El periodo permite separar datos por mes y tambien permite planificar meses futuros.
 
+La navegacion mensual se presentara en el frontend como un calendario anual: año navegable y doce botones de mes organizados en una cuadricula de 4 por 3. Mostrar el calendario no crea datos. Un periodo se consulta o prepara solamente cuando el usuario selecciona un mes.
+
 ## Movimiento como fuente central
 
 La tabla `movements` es la fuente central de verdad financiera.
@@ -67,11 +70,15 @@ Esto significa que todo lo que mueva dinero debe terminar reflejado como movimie
 - Pago de deuda.
 - Aporte a meta.
 
+El modulo futuro de ingresos separara los ingresos fijos, que pueden repetirse cada periodo, de los ingresos casuales, que corresponden a entradas ocasionales. Ambos generaran movimientos pendientes y conservaran por separado el monto esperado y el monto realmente recibido.
+
 ## Pendiente y confirmado
 
 Un movimiento pendiente sirve para planificar.
 
 Un movimiento confirmado afecta el saldo real.
+
+Ingresos y egresos se crean pendientes con un monto esperado. Al confirmarlos se registra el monto real, que puede ser diferente, sin modificar la definicion fija o recurrente que los origino. Las transferencias inmediatas pueden confirmarse al crearse; las programadas permanecen pendientes.
 
 Un movimiento cancelado o eliminado no debe contarse como activo, pero debe conservarse para historial cuando corresponda.
 
@@ -105,14 +112,13 @@ Reglas confirmadas:
 - Las cuentas pertenecen al usuario autenticado.
 - Las cuentas se crean activas por defecto.
 - Las cuentas pueden inactivarse mediante el cambio de estado.
-- Actualmente una cuenta no principal tambien puede eliminarse fisicamente.
-  Cuando exista historial de movimientos, esa eliminacion debera bloquearse.
+- Una cuenta no principal solo puede eliminarse fisicamente si no tiene historial de movimientos.
 - La primera cuenta del usuario se marca como principal automaticamente.
 - Solo puede existir una cuenta principal activa por usuario.
 - Si una cuenta principal se inactiva, deja de ser principal.
 - Las tarjetas de credito no suman al saldo total.
 - Las tarjetas de credito suman al credito disponible.
-- Los movimientos reales se implementaran despues y seran los que modifiquen saldos confirmados.
+- Los movimientos reales ya estan implementados y los confirmados modifican saldos.
 
 ## Tipos de cuenta confirmados
 
@@ -140,7 +146,8 @@ La comparacion entre ambos permite medir cumplimiento financiero.
 - Las suscripciones son un modulo separado de pagos recurrentes.
 - Los pagos variables pertenecen solo al periodo donde se crean.
 - Los pagos recurrentes y suscripciones generan ocurrencias por periodo.
-- Las categorias eliminadas se desactivan para conservar historial.
+- Los ingresos fijos se planifican para repetirse; los ingresos casuales no se repiten automaticamente.
+- Las categorias se copian al preparar un mes nuevo y luego cada mes queda independiente. Solo pueden eliminarse de un mes si ningun movimiento visible de ese periodo las utiliza.
 - Las operaciones que afectan varias tablas deben hacerse de forma consistente.
 
 ## Documentos relacionados

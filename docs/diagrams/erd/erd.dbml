@@ -1,20 +1,34 @@
-// Vista reducida. El modelo completo esta en sistema_completo.dbml.
+// Vista reducida del modelo implementado. El objetivo futuro esta en sistema_completo.dbml.
 
 Table users {
-  id uuid [pk]
+  id int [pk, increment]
   email varchar [unique]
 }
 
 Table accounts {
-  id uuid [pk]
-  user_id uuid [ref: > users.id]
+  id int [pk, increment]
+  user_id int [ref: > users.id]
   name varchar
 }
 
 Table movements {
-  id uuid [pk]
-  user_id uuid [ref: > users.id]
-  account_id uuid [ref: > accounts.id]
-  amount decimal
+  id int [pk, increment]
+  user_id int [ref: > users.id]
+  account_id int [ref: > accounts.id]
+  expected_amount decimal
+  actual_amount decimal
 }
 
+Table category_periods {
+  id int [pk, increment]
+  user_id int [ref: > users.id]
+  period char(7)
+  indexes { (user_id, period) [unique] }
+}
+
+Table categories {
+  id int [pk, increment]
+  user_id int [ref: > users.id]
+  period char(7)
+  name varchar
+}

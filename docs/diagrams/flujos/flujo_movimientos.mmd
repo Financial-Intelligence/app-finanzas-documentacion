@@ -1,5 +1,5 @@
 flowchart TD
-    Origen[Modulo origen]
+    Origen[API manual o modulo origen futuro]
     Movement[movements]
     Estado{Estado}
     Proyeccion[Participa en proyeccion]
@@ -10,5 +10,7 @@ flowchart TD
     Movement --> Estado
     Estado -->|pending| Proyeccion
     Estado -->|confirmed| Saldo
+    Estado -->|cancelled| Reversion[Revierte saldo y conserva historial]
     Movement --> Dashboard
-
+    Proyeccion --> Expected[Conserva expectedAmount]
+    Saldo --> Actual[Usa actualAmount]

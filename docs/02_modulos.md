@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-Actualizado con la especificacion general y el avance real del modulo de cuentas.
+Actualizado con el avance real de cuentas y movimientos al 2026-07-15.
 
 No describe pantallas solamente. Describe responsabilidades reales del sistema.
 
@@ -12,14 +12,15 @@ No describe pantallas solamente. Describe responsabilidades reales del sistema.
 2. Cuentas.
 3. Categorias.
 4. Movimientos.
-5. Pagos recurrentes.
-6. Pagos variables.
-7. Suscripciones.
-8. Prestamos por cobrar.
-9. Deudas por pagar.
-10. Metas.
-11. Presupuestos.
-12. Dashboard y reportes.
+5. Ingresos fijos e ingresos casuales.
+6. Pagos recurrentes.
+7. Pagos variables.
+8. Suscripciones.
+9. Prestamos por cobrar.
+10. Deudas por pagar.
+11. Metas.
+12. Presupuestos.
+13. Dashboard y reportes.
 
 ## 1. Acceso personal
 
@@ -66,9 +67,9 @@ Administrar las cuentas donde existe o se mueve dinero.
 ### Que no hace
 
 - No permite eliminar una cuenta principal.
-- Cuando se implemente Movimientos, debera impedirse eliminar cuentas con historial.
+- No permite eliminar cuentas con historial de movimientos.
 - No calcula por si solo todo el resultado mensual.
-- No modifica saldos por movimientos hasta que el modulo Movimientos este implementado.
+- Los movimientos confirmados modifican su saldo actual.
 
 ### Tipos soportados
 
@@ -84,6 +85,10 @@ OTHER
 
 ## 3. Categorias
 
+### Estado actual
+
+Modulo mensual implementado en backend. Permite listar, crear, consultar, editar y eliminar categorias con sus subcategorias.
+
 ### Responsabilidad
 
 Clasificar ingresos y egresos.
@@ -94,6 +99,9 @@ Clasificar ingresos y egresos.
 - Gestiona categorias de egreso.
 - Gestiona subcategorias.
 - Permite calcular totales por categoria usando movimientos confirmados.
+- Copia la configuracion del ultimo mes al preparar uno nuevo.
+- Mantiene cada mes independiente despues de inicializarlo.
+- Bloquea eliminar categorias o subcategorias usadas por movimientos del mes.
 
 ### Que no hace
 
@@ -102,6 +110,10 @@ Clasificar ingresos y egresos.
 - No elimina historial.
 
 ## 4. Movimientos
+
+### Estado actual
+
+Primera version funcional implementada en backend. Incluye ingresos, gastos, transferencias, consulta, filtros, edicion, confirmacion, cancelacion y eliminacion logica.
 
 ### Responsabilidad
 
@@ -113,6 +125,7 @@ Ser la fuente central de verdad financiera.
 - Registra egresos.
 - Registra transferencias.
 - Guarda estado pendiente, confirmado o cancelado.
+- Conserva monto esperado y monto real confirmado.
 - Vincula cada movimiento con su modulo de origen mediante `source_type` y `source_id`.
 - Alimenta cuentas, dashboard, reportes y categorias.
 
@@ -121,7 +134,25 @@ Ser la fuente central de verdad financiera.
 - No reemplaza las reglas especificas de cada modulo.
 - No debe duplicar movimientos ya generados por otro modulo.
 
-## 5. Pagos recurrentes
+## 5. Ingresos fijos e ingresos casuales
+
+### Estado actual
+
+Modulo planificado y pendiente de implementacion.
+
+### Responsabilidad
+
+Separar los ingresos que se esperan regularmente de los ingresos que aparecen de manera ocasional.
+
+### Que hara
+
+- Los ingresos fijos guardaran una planificacion repetible, como el sueldo.
+- Los ingresos casuales registraran entradas ocasionales que no deben repetirse automaticamente.
+- Ambos crearan movimientos pendientes.
+- Al confirmar se conservara el monto esperado y se guardara por separado el monto realmente recibido.
+- Confirmar un monto diferente no cambiara el valor definido para futuros ingresos fijos.
+
+## 6. Pagos recurrentes
 
 ### Responsabilidad
 
@@ -138,7 +169,7 @@ Gestionar ingresos o egresos que se repiten en el tiempo.
 
 Para el flujo futuro se preferira hablar de **registrar pago** en vez de usar como concepto principal **confirmar recurrente**.
 
-## 6. Pagos variables
+## 7. Pagos variables
 
 ### Responsabilidad
 
@@ -150,7 +181,7 @@ Gestionar ingresos o egresos planificados para un periodo especifico.
 - No se copia automaticamente al mes siguiente.
 - Al confirmarse crea movimiento.
 
-## 7. Suscripciones
+## 8. Suscripciones
 
 ### Responsabilidad
 
@@ -166,7 +197,7 @@ Gestionar servicios o membresias con renovacion periodica.
 
 - No debe duplicarse como pago recurrente normal.
 
-## 8. Prestamos por cobrar
+## 9. Prestamos por cobrar
 
 ### Responsabilidad
 
@@ -179,7 +210,7 @@ Controlar dinero prestado a terceros.
 - Permite registrar cobros.
 - Cada cobro genera ingreso.
 
-## 9. Deudas por pagar
+## 10. Deudas por pagar
 
 ### Responsabilidad
 
@@ -192,7 +223,7 @@ Controlar dinero recibido que debe devolverse.
 - Permite registrar pagos.
 - Cada pago genera egreso.
 
-## 10. Metas
+## 11. Metas
 
 ### Responsabilidad
 
@@ -205,7 +236,7 @@ Controlar objetivos financieros con aportes y fecha limite.
 - Calcula progreso.
 - Marca completada cuando llega al objetivo.
 
-## 11. Presupuestos
+## 12. Presupuestos
 
 ### Responsabilidad
 
@@ -220,7 +251,7 @@ Definir limites mensuales generales o por categoria.
 
 Incluido en la especificacion, pendiente de implementacion.
 
-## 12. Dashboard y reportes
+## 13. Dashboard y reportes
 
 ### Responsabilidad
 
@@ -256,5 +287,5 @@ Sirven para que todo el sistema calcule igual:
 - Cuentas guardan el dinero.
 - Categorias clasifican movimientos.
 - Movimientos centraliza todo lo ocurrido.
-- Recurrentes, variables, suscripciones, prestamos, deudas y metas generan movimientos.
+- Ingresos fijos, ingresos casuales, recurrentes, variables, suscripciones, prestamos, deudas y metas generan movimientos.
 - Dashboard y reportes leen informacion consolidada.

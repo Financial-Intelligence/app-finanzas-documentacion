@@ -22,13 +22,25 @@ Resumen:
 - `PATCH /api/accounts/:id` edita cuenta.
 - `PATCH /api/accounts/:id/status` activa o inactiva.
 
-## Flujo futuro de movimientos
+## Flujo actual de movimientos
 
 ```text
 Modulo origen
   -> crea o registra accion financiera
   -> tabla movements
-  -> actualiza saldo si esta confirmado
+  -> guarda expectedAmount al planificar
+  -> guarda actualAmount al confirmar
+  -> actualiza saldo con actualAmount
+
+Categorias por mes:
+
+```text
+abrir periodo
+  -> comprobar CategoryPeriod
+  -> copiar ultimo mes si no fue inicializado
+  -> editar de forma independiente
+  -> sumar actualAmount solo de confirmados
+```
   -> dashboard/reportes leen movements
 ```
 
@@ -87,4 +99,3 @@ goals
   -> movements
   -> accounts
 ```
-

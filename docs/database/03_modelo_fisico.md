@@ -4,12 +4,12 @@
 
 Actualizado desde `FINANCE_APP_DATABASE_AND_API_SPEC.md`.
 
-Este modelo representa la especificacion objetivo. Debe compararse con las migraciones reales cuando existan.
+Este documento mezcla la especificacion objetivo con modulos futuros. El estado fisico exacto implementado se confirma en `prisma/schema.prisma` y sus migraciones.
 
 ## Convenciones
 
-- Clave primaria: `id UUID`.
-- Usuario propietario: `user_id UUID`.
+- Clave primaria implementada: `id INTEGER` autoincremental.
+- Usuario propietario implementado: `user_id INTEGER`.
 - Dinero: `DECIMAL(14,2)`.
 - Fechas de auditoria: `created_at`, `updated_at`.
 - Borrado logico: `deleted_at` en tablas criticas.
@@ -17,12 +17,15 @@ Este modelo representa la especificacion objetivo. Debe compararse con las migra
 
 ## Tablas
 
+Implementadas actualmente: `users`, `accounts`, `category_periods` (`CategoryPeriod` en Prisma), `categories`, `subcategories` y `movements`. Las demas tablas pertenecen al diseño futuro.
+
 | Tabla | Responsabilidad |
 | --- | --- |
 | `users` | Usuario autenticado. |
 | `refresh_tokens` | Sesiones o renovacion de acceso. |
 | `accounts` | Cuentas financieras. |
 | `categories` | Categorias de ingreso o egreso. |
+| `category_periods` | Control de inicializacion y copia de categorias por mes. |
 | `subcategories` | Subcategorias. |
 | `movements` | Fuente central de verdad financiera. |
 | `recurring_payments` | Definicion de pagos recurrentes. |
@@ -45,6 +48,8 @@ Este modelo representa la especificacion objetivo. Debe compararse con las migra
 - `accounts(user_id, status)`.
 - `accounts(user_id, type)`.
 - `categories(user_id, type, is_active)`.
+- `categories(user_id, period)` y unico `(user_id, period, type, name)`.
+- `category_periods(user_id, period)` unico.
 - `subcategories(category_id, is_active)`.
 - `movements(user_id, period)`.
 - `movements(account_id, period)`.
@@ -66,4 +71,3 @@ Este modelo representa la especificacion objetivo. Debe compararse con las migra
 | `category_type` | `income`, `expense` |
 | `payment_frequency` | `daily`, `weekly`, `biweekly`, `monthly`, `quarterly`, `annual` |
 | `source_type` | `manual`, `recurring`, `variable`, `subscription`, `loan`, `debt`, `goal`, `transfer` |
-
