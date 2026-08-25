@@ -1,222 +1,493 @@
-# Prompt para frontend: implementar únicamente Pagos Recurrentes
+# Prompt para frontend: implementar únicamente Pagos Variables
 
-Implementa el módulo visual de **Pagos Recurrentes** consumiendo el backend
-real. No uses mocks, no inventes rutas y no calcules ocurrencias en el frontend.
+Implementa el módulo visual de **Pagos Variables** consumiendo el backend real.
+No uses mocks, no inventes rutas y no calcules fechas, contadores, diferencias
+ni estados en el frontend.
+
+## Regla principal del mes
+
+Cada tarjeta pertenece solamente al mes que el usuario tiene abierto.
+
+- Si está viendo agosto, crearla con `period: "2026-08"`.
+- Si cambia a septiembre, crearla con `period: "2026-09"`.
+- Una tarjeta de agosto no debe aparecer automáticamente en septiembre.
+- Al volver a agosto, debe verse la tarjeta y su historial de agosto.
+
+El frontend siempre debe enviar en `period` el mes abierto en el selector
+global. La fecha inicial también debe pertenecer a ese mes.
 
 ## Rutas disponibles
 
-Todas requieren el token JWT:
+Todas requieren JWT:
 
 ```http
-GET    /api/recurring-payments?period=YYYY-MM&view=pending|paused|finished|all&type=EXPENSE|INCOME
-GET    /api/recurring-payments/:id?period=YYYY-MM
-POST   /api/recurring-payments
-PATCH  /api/recurring-payments/:id
-POST   /api/recurring-payments/:id/register
-POST   /api/recurring-payments/:id/pause
-POST   /api/recurring-payments/:id/resume
-DELETE /api/recurring-payments/:id
+GET    /api/variable-payments?period=YYYY-MM&view=all|pending|confirmed&type=EXPENSE|INCOME
+GET    /api/variable-payments/:id
+POST   /api/variable-payments
+PATCH  /api/variable-payments/:id
+POST   /api/variable-payments/:id/register
+DELETE /api/variable-payments/:id
 ```
 
 Frecuencias y etiquetas:
 
 ```text
-DAILY       Diaria
-WEEKLY      Semanal
-BIWEEKLY    Quincenal
-MONTHLY     Mensual
-QUARTERLY   Trimestral
-ANNUAL      Anual
+DAILY    Diario
+WEEKLY   Semanal
+MONTHLY  Mensual
 ```
 
-El backend es la fuente de verdad para fechas, ocurrencias, contadores,
-progreso, estado visual, próxima fecha y diferencias. Si una recurrencia usa
-el día 29, 30 o 31, el backend ajusta automáticamente los meses cortos y vuelve
-al día original cuando sea posible.
+La fecha inicial es la primera ocurrencia. El backend calcula las siguientes
+solo hasta el último día de ese mes:
+
+- `DAILY`: cada día;
+- `WEEKLY`: cada 7 días;
+- `MONTHLY`: una sola ocurrencia.
 
 ## Pantalla principal
 
-Mostrar los resúmenes usando únicamente estos campos del backend:
+Consultar nuevamente al cambiar el mes abierto. Mostrar los resúmenes del
+backend:
 
-- egresos esperados: `summary.expensesExpected`;
+- egresos proyectados: `summary.expensesExpected`;
 - egresos registrados: `summary.expensesActual`;
-- ingresos esperados: `summary.incomeExpected`;
+- ingresos proyectados: `summary.incomeExpected`;
 - ingresos registrados: `summary.incomeActual`;
-- diferencia total: `summary.difference`;
-- próximo registro: `summary.nextRecurringPayment` y
+- diferencia: `summary.difference`;
+- próximo movimiento: `summary.nextVariablePayment` y
   `summary.nextOccurrenceDate`.
 
 Pestañas:
 
-- **Pendientes**: enviar `view=pending`;
-- **Pausados**: enviar `view=paused`;
-- **Finalizados**: enviar `view=finished`.
+- **Todos**: `view=all`;
+- **Pendientes**: `view=pending`;
+- **Confirmados**: `view=confirmed`.
 
-Usar `counts.pending`, `counts.paused`, `counts.finished` y `counts.all`.
-Finalizado significa que completó las ocurrencias del período consultado; no
-significa que terminó para siempre.
+Usar `counts.all`, `counts.pending` y `counts.confirmed`.
 
-Cada tarjeta debe mostrar:
+Cada tarjeta muestra:
 
 - nombre y descripción;
-- tipo, cuenta y categoría;
-- frecuencia y monto esperado;
-- `progress`;
+- tipo, cuenta, categoría y subcategoría cuando exista;
+- frecuencia y monto esperado por ocurrencia;
+- `progress`, por ejemplo `2 / 4`;
 - `nextOccurrenceDate`;
 - `periodExpectedAmount`;
 - `periodActualAmount`;
-- `periodDifference`.
+- `periodDifference`;
+- estado usando `viewStatus`: `PENDING` o `CONFIRMED`.
 
-Acciones de la tarjeta:
+Acciones:
 
-- si es `EXPENSE`: **Registrar gasto**;
-- si es `INCOME`: **Registrar ingreso**;
+- para `EXPENSE`: **Registrar gasto**;
+- para `INCOME`: **Registrar ingreso**;
 - **Editar**;
-- **Pausar** o **Reanudar**;
 - **Eliminar**.
 
-No utilizar el texto “Confirmar pago”.
+No usar el texto “Confirmar” como acción principal.
 
-## Crear una recurrencia
+## Formulario de creación
 
-El formulario debe exigir nombre, tipo, monto esperado, frecuencia, fecha de
-inicio, cuenta y categoría. La descripción es opcional. Filtrar las categorías
-para que coincidan con el tipo y no mostrar tarjetas de crédito como cuentas
-disponibles.
+Campos:
+
+- tipo: gasto o ingreso;
+- nombre;
+- descripción opcional;
+- monto esperado por ocurrencia;
+- frecuencia: diaria, semanal o mensual;
+- fecha inicial dentro del mes abierto;
+- cuenta obligatoria;
+- categoría obligatoria;
+- subcategoría opcional solo para gastos.
+
+No mostrar un selector de estado. Toda tarjeta nueva comienza pendiente y se
+confirma únicamente cuando se registra el gasto o ingreso real. No mostrar
+tarjetas de crédito como cuentas disponibles. Filtrar categorías por tipo y
+por el mes abierto.
+
+Ejemplo:
 
 ```json
 {
-  "name": "Internet",
-  "description": "Servicio del hogar",
+  "period": "2026-08",
+  "name": "Comprar zapatillas",
+  "description": "Compra planificada para agosto",
   "type": "EXPENSE",
-  "expectedAmount": 100,
+  "expectedAmount": 260,
   "frequency": "MONTHLY",
-  "startDate": "2026-08-10",
+  "startDate": "2026-08-20",
   "accountId": 15,
-  "categoryId": 19
+  "categoryId": 19,
+  "subcategoryId": 8
 }
 ```
 
-Después de crear, volver a consultar Pagos Recurrentes.
+Para un ingreso no enviar `subcategoryId`, o enviarlo como `null`.
 
 ## Editar
 
-Usar `PATCH /api/recurring-payments/:id` enviando solamente los campos que
-cambiaron. Los cambios se aplican a las ocurrencias futuras; el frontend no
-debe modificar ni recalcular registros históricos.
+Usar `PATCH /api/variable-payments/:id` y enviar únicamente los campos que
+cambiaron. No se puede cambiar el mes de la tarjeta. Si se cambia la fecha
+inicial, debe continuar dentro de ese mismo mes.
 
-Después de editar, volver a consultar la lista y el detalle.
+Los cambios afectan las ocurrencias pendientes. Las confirmaciones y
+movimientos ya realizados conservan sus montos, cuenta, categoría y fechas
+originales. Si cambia la frecuencia o la fecha inicial dentro del mes actual,
+el nuevo calendario comienza desde hoy; un mes ya terminado no permite cambiar
+su calendario. Después de editar, volver a consultar lista y detalle.
 
 ## Registrar gasto o ingreso
 
-Al pulsar la acción, abrir un segundo formulario con:
+El botón abre un segundo formulario con:
 
-- nombre de la recurrencia;
-- ocurrencia: `nextOccurrenceDate`;
-- monto esperado como referencia;
+- nombre de la tarjeta;
+- ocurrencia a registrar: `nextOccurrenceDate`;
+- monto esperado;
 - monto real editable, inicialmente igual al esperado;
-- fecha real del movimiento, inicialmente hoy;
+- fecha real, inicialmente hoy;
 - vista previa de la diferencia.
 
 Enviar:
 
 ```json
 {
-  "occurrenceDate": "2026-08-10",
-  "actualAmount": 80,
-  "registeredDate": "2026-08-25"
+  "occurrenceDate": "2026-08-20",
+  "actualAmount": 240,
+  "registeredDate": "2026-08-20"
 }
 ```
 
-`registeredDate` es opcional. El backend crea el movimiento confirmado y
-devuelve `confirmation` con `expectedAmount`, `actualAmount`, `difference`,
-`occurrenceDate`, `registeredDate`, cuenta y movimiento.
+`registeredDate` es opcional, pero debe pertenecer al mismo mes de la tarjeta.
+La respuesta incluye `confirmation` con monto esperado, monto real,
+diferencia, fechas, cuenta y movimiento.
 
-Mostrar la diferencia que entrega el backend:
+La diferencia ya viene calculada por el backend:
 
 - gasto: esperado menos real;
 - ingreso: real menos esperado;
-- positivo: favorable;
-- negativo: desfavorable.
+- positivo: resultado favorable;
+- negativo: exceso o faltante.
 
-Ejemplo visual:
+No modificar saldos localmente. Después de registrar, refrescar Pagos
+Variables, Cuentas, resumen de Cuentas y Movimientos. Ante un registro repetido
+el backend responde `409`; mostrar su `message` y refrescar la tarjeta.
 
-```text
-Internet
-Esperado: S/ 100.00
-Pagado: S/ 80.00
-Diferencia: +S/ 20.00
-```
+## Eliminar
 
-No modificar saldos manualmente. Después del registro, refrescar Pagos
-Recurrentes, Cuentas, resumen de Cuentas y Movimientos. Si el backend responde
-`409`, mostrar su `message`; puede indicar que la ocurrencia ya fue registrada.
+Antes de eliminar, mostrar:
 
-## Pausar, reanudar y eliminar
+> Si esta tarjeta todavía no tiene registros, se eliminará completamente. Si ya tiene gastos o ingresos registrados, la tarjeta dejará de aparecer, pero sus movimientos se conservarán como historial.
 
-`pause` y `resume` no llevan body. Una tarjeta pausada no debe mostrar la acción
-de registro. Al reanudar, el backend continúa desde la fecha actual sin generar
-los registros que pasaron durante la pausa.
+La respuesta trae:
 
-Antes de eliminar mostrar:
+- `deletionType: "DELETED"`: no tenía confirmaciones y se borró completamente;
+- `deletionType: "HISTORICAL"`: tenía confirmaciones y conservó sus movimientos.
 
-> Se eliminará esta recurrencia y dejará de aparecer. Los gastos o ingresos ya registrados se conservarán en el historial.
+Nunca eliminar manualmente esos movimientos desde el frontend.
 
-Después de eliminar, retirar la tarjeta y refrescar Movimientos. Nunca borrar
-los movimientos históricos desde el frontend.
+## Integración con Cuentas
 
-## Cambio real de día y mes
-
-Al abrir la pantalla, usar el `period` que responde el backend. Programar una
-nueva consulta al llegar las 00:00 en la zona horaria del usuario y también al
-recuperar el foco o visibilidad de la pestaña.
-
-Cuando cambie el día o mes, refrescar Pagos Recurrentes, Cuentas, sus resúmenes
-y Movimientos. El frontend solo solicita nuevamente los datos; el backend hace
-todos los cálculos y conserva el historial anterior.
-
-## Integración nueva con Cuentas
-
-Consumir:
+Consultar usando el mes abierto:
 
 ```http
 GET /api/accounts?period=YYYY-MM
 GET /api/accounts/summary?period=YYYY-MM
 ```
 
-Cada cuenta incluye `recurringDifference` y el resumen incluye
-`summary.recurringDifference`. Mostrarlo separado con el título **Diferencia
-frente a lo planificado**:
+Cada cuenta incluye:
+
+- `variableDifference`: diferencia producida por Pagos Variables en ese mes;
+- `planningDifference`: diferencia total de planificación de la cuenta.
+
+El resumen contiene los mismos campos dentro de `summary`. Mostrar
+`variableDifference` separado del saldo real con el título **Diferencia de
+pagos variables**:
 
 - positivo: **A favor**;
 - negativo: **Exceso / faltante**;
 - cero: **Sin diferencia**.
 
-No sumar `recurringDifference` a `currentBalance`; el movimiento real ya cambió
-el saldo y sumarlo otra vez duplicaría el resultado.
+No sumar la diferencia a `currentBalance`; cada movimiento ya aplicó su monto
+real y volver a sumarla duplicaría el resultado.
 
-## Actualización de datos y errores
+## Actualización y errores
 
-Después de crear, editar, registrar, pausar, reanudar o eliminar, invalidar y
-consultar nuevamente los datos afectados. Usar fechas `YYYY-MM-DD`, montos
-numéricos y mostrar el `message` del backend ante respuestas `400`, `401`,
-`404` o `409`. No cerrar el formulario si hubo un error.
+Después de crear, editar, registrar o eliminar, invalidar y consultar otra vez
+los datos afectados. Usar fechas `YYYY-MM-DD`, montos numéricos y mostrar
+`message` ante respuestas `400`, `401`, `404` o `409`. No cerrar el formulario
+si hubo un error.
 
 ## Pruebas obligatorias
 
-- Mensual: `0 / 1`, registro, paso a Finalizados y regreso a Pendientes en el
-  siguiente mes.
-- Semanal: respetar exactamente las ocurrencias devueltas por el backend.
-- Diaria: meses de 28, 29, 30 y 31 días e inicio en mitad del mes.
-- Quincenal, trimestral y anual.
-- Inicio el día 31, ajuste en febrero y regreso al día 31 en marzo.
+- Crear una tarjeta en agosto y comprobar que no aparece en septiembre.
+- Volver a agosto y comprobar que conserva su contador e historial.
+- Mensual: `0 / 1`, registrar y pasar a Confirmados.
+- Semanal: calcular solo fechas del mes abierto.
+- Diario iniciado a mitad del mes: contar únicamente los días restantes.
 - Gasto e ingreso con monto menor, igual y mayor al esperado.
-- Mensaje ante registro duplicado.
-- Pausa y reanudación sin registros atrasados.
-- Edición sin alterar el historial.
-- Eliminación conservando Movimientos.
-- Actualización al cambiar de mes y al recuperar el foco.
-- Diferencia visible en Cuentas sin modificar dos veces el saldo.
+- Bloquear el registro duplicado de una ocurrencia.
+- Editar sin modificar confirmaciones anteriores.
+- Eliminar sin confirmaciones: desaparición completa.
+- Eliminar con confirmaciones: tarjeta oculta y movimientos conservados.
+- Mostrar `variableDifference` sin modificar dos veces el saldo.
+- Cambiar el selector global de mes y refrescar todos los datos del módulo.
 
 No se considera terminado hasta probar todos estos casos contra el backend
 real, sin mocks ni rutas distintas de las indicadas.
+
+---
+
+# Prompt adicional para frontend: implementar Suscripciones
+
+Conserva todo lo ya implementado de Pagos Variables y añade el módulo visual de
+**Suscripciones** consumiendo el backend real. Las suscripciones representan
+únicamente gastos. No agregues la opción de ingreso, no uses mocks y no
+calcules fechas, estados, contadores ni diferencias en el frontend.
+
+## Rutas disponibles
+
+Todas requieren JWT:
+
+```http
+GET    /api/subscriptions?period=YYYY-MM&view=all|pending|confirmed|paused
+GET    /api/subscriptions/:id?period=YYYY-MM
+POST   /api/subscriptions
+PATCH  /api/subscriptions/:id
+POST   /api/subscriptions/:id/register
+POST   /api/subscriptions/:id/pause
+POST   /api/subscriptions/:id/resume
+DELETE /api/subscriptions/:id
+```
+
+Frecuencias y etiquetas:
+
+```text
+DAILY          Diaria
+WEEKLY         Semanal
+MONTHLY        Mensual
+ANNUAL         Anual
+CUSTOM_MONTHS  Cada cierta cantidad de meses
+```
+
+Cuando se elija `CUSTOM_MONTHS`, mostrar el campo obligatorio **Se repite cada
+N meses** y enviar `intervalMonths` entre 2 y 120. Para las demás frecuencias
+no enviarlo o enviarlo como `null`.
+
+## Comportamiento por mes
+
+Las suscripciones son globales y no se duplican al cambiar de mes. El selector
+global solo determina el mes cuyos pagos, estados y contadores se muestran.
+
+El backend devuelve `viewStatus`:
+
+- `PENDING`: tiene renovaciones pendientes en el mes abierto;
+- `CONFIRMED`: todas las renovaciones de ese mes están pagadas;
+- `PAUSED`: la suscripción está pausada;
+- `NO_DUE`: no tiene ningún cobro durante ese mes.
+
+`NO_DUE` aparece únicamente en **Todas**. No debe mostrarse como pendiente ni
+confirmada; mostrar su próxima renovación.
+
+## Pantalla principal
+
+Usar directamente el resumen del backend:
+
+- total del mes: `summary.totalExpectedThisPeriod`;
+- pagado este mes: `summary.paidThisPeriod`;
+- costo proyectado de los próximos 12 meses:
+  `summary.projectedCostNext12Months`;
+- diferencia del mes: `summary.difference`;
+- cantidad activa: `summary.activeSubscriptions`;
+- próxima renovación: `summary.nextSubscription` y
+  `summary.nextRenewalDate`.
+
+El costo de 12 meses ya considera la frecuencia diaria, semanal, mensual,
+anual o personalizada. No multiplicar montos en el frontend.
+
+Pestañas:
+
+- **Todas**: `view=all`;
+- **Pendientes**: `view=pending`;
+- **Confirmadas**: `view=confirmed`;
+- **Pausadas**: `view=paused`.
+
+Usar `counts.all`, `counts.pending`, `counts.confirmed`, `counts.paused` y
+`counts.noDue`.
+
+Cada tarjeta muestra:
+
+- nombre y descripción;
+- cuenta, categoría y subcategoría cuando exista;
+- frecuencia y cantidad de meses cuando sea personalizada;
+- monto esperado por renovación;
+- `progress`, por ejemplo `0 / 1`;
+- `nextRenewalDate`;
+- `periodExpectedAmount`;
+- `periodActualAmount`;
+- `periodDifference`;
+- `projectedCostNext12Months`;
+- estado usando `viewStatus`.
+
+Acciones:
+
+- **Registrar pago**;
+- **Editar**;
+- **Pausar** o **Reanudar**;
+- **Eliminar**.
+
+No utilizar el texto **Confirmar pago**.
+
+## Nueva suscripción
+
+Campos:
+
+- nombre obligatorio;
+- descripción opcional;
+- monto esperado obligatorio;
+- próxima fecha o primer cobro obligatorio;
+- cuenta de pago obligatoria;
+- categoría de gasto obligatoria;
+- subcategoría opcional;
+- frecuencia obligatoria;
+- cantidad de meses obligatoria solo para `CUSTOM_MONTHS`.
+
+No mostrar tarjetas de crédito como cuentas disponibles. Filtrar categorías de
+gasto según el mes del primer cobro.
+
+Ejemplo mensual:
+
+```json
+{
+  "name": "Netflix",
+  "description": "Plan familiar",
+  "expectedAmount": 50,
+  "frequency": "MONTHLY",
+  "intervalMonths": null,
+  "startDate": "2026-08-15",
+  "accountId": 15,
+  "categoryId": 19,
+  "subcategoryId": 8
+}
+```
+
+Ejemplo cada tres meses:
+
+```json
+{
+  "name": "Servicio trimestral",
+  "expectedAmount": 90,
+  "frequency": "CUSTOM_MONTHS",
+  "intervalMonths": 3,
+  "startDate": "2026-08-15",
+  "accountId": 15,
+  "categoryId": 19
+}
+```
+
+## Registrar pago
+
+El botón **Registrar pago** abre un segundo formulario. Mostrar:
+
+- nombre de la suscripción;
+- renovación a registrar: `nextRenewalDate`;
+- monto esperado;
+- monto real editable, inicialmente igual al esperado;
+- fecha real del pago, inicialmente hoy;
+- vista previa de la diferencia.
+
+Enviar:
+
+```json
+{
+  "occurrenceDate": "2026-08-15",
+  "actualAmount": 45,
+  "paidDate": "2026-08-15"
+}
+```
+
+`paidDate` es opcional. La respuesta incluye `payment` con esperado, real,
+diferencia, fechas, cuenta y movimiento. El backend crea un gasto confirmado y
+descuenta el monto real de la cuenta.
+
+La diferencia es `monto esperado - monto real`:
+
+- positiva: pagó menos de lo esperado;
+- negativa: pagó más de lo esperado;
+- cero: pagó exactamente lo esperado.
+
+No cambiar saldos en el frontend. Ante `409` por renovación duplicada, mostrar
+`message` y refrescar la tarjeta. Después del pago, refrescar Suscripciones,
+Cuentas, resumen de Cuentas y Movimientos.
+
+## Editar
+
+Usar `PATCH /api/subscriptions/:id` y enviar solo campos modificados. Los
+cambios afectan renovaciones futuras. Los pagos y movimientos anteriores
+conservan sus datos originales.
+
+Si cambia frecuencia, cantidad de meses o fecha inicial, el nuevo calendario
+comienza desde hoy o desde una fecha futura elegida. No crear pagos atrasados.
+
+## Pausar y reanudar
+
+`pause` y `resume` no llevan body. Una suscripción pausada no muestra
+**Registrar pago** y su `nextRenewalDate` será `null`.
+
+Al reanudar, el calendario continúa desde la fecha real de reanudación. No
+generar pagos correspondientes al tiempo en que estuvo pausada.
+
+## Eliminar
+
+Antes de eliminar mostrar:
+
+> Si la suscripción todavía no tiene pagos, se eliminará completamente. Si ya tiene pagos registrados, dejará de aparecer, pero sus movimientos se conservarán como historial.
+
+La respuesta devuelve:
+
+- `deletionType: "DELETED"`: no tenía pagos y se borró completamente;
+- `deletionType: "HISTORICAL"`: tenía pagos y conservó el historial.
+
+Nunca eliminar sus movimientos manualmente desde el frontend.
+
+## Integración con Cuentas
+
+Consultar según el mes abierto:
+
+```http
+GET /api/accounts?period=YYYY-MM
+GET /api/accounts/summary?period=YYYY-MM
+```
+
+Cada cuenta y el resumen incluyen:
+
+- `subscriptionDifference`: diferencia de Suscripciones del mes;
+- `planningDifference`: diferencia total de planificación.
+
+Mostrar `subscriptionDifference` separado del saldo real con el título
+**Diferencia de suscripciones**. No sumarlo a `currentBalance`, porque el gasto
+real ya modificó la cuenta.
+
+## Actualización y errores
+
+Al cambiar el mes global, volver a consultar Suscripciones y Cuentas. Después
+de crear, editar, registrar, pausar, reanudar o eliminar, invalidar todos los
+datos afectados. Mostrar `message` ante `400`, `401`, `404` y `409`, y no cerrar
+el formulario si ocurrió un error.
+
+## Pruebas obligatorias
+
+- Mensual: pendiente, registrar pago, confirmada y pendiente nuevamente al
+  siguiente mes.
+- Diaria y semanal con contadores exactos del mes.
+- Anual: un mes sin cobro usa `NO_DUE` y muestra la próxima renovación.
+- Personalizada cada 3 meses: solo genera renovaciones en los meses correctos.
+- Costo proyectado de 12 meses para cada frecuencia.
+- Pago menor, igual y mayor al monto esperado.
+- Bloqueo de renovación duplicada.
+- Edición sin alterar pagos históricos.
+- Pausa y reanudación sin pagos atrasados.
+- Eliminación completa sin pagos y conservación histórica con pagos.
+- `subscriptionDifference` visible sin modificar dos veces el saldo.
+
+No se considera terminado hasta probar todos los casos contra el backend real,
+sin mocks ni rutas distintas de las indicadas.
