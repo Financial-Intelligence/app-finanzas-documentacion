@@ -1,299 +1,278 @@
-# Prompt para frontend: nuevas mejoras de planificación y Cuentas
+# Prompt para frontend: módulo de Metas
 
-Implementa únicamente los cambios descritos aquí. Pagos Recurrentes, Pagos
-Variables y Suscripciones ya existen; no reconstruyas esos módulos ni elimines
-sus comportamientos actuales.
+Implementa únicamente el módulo de **Metas** y su integración nueva con
+**Cuentas**. Los demás módulos ya están terminados y no deben reconstruirse.
 
-El backend es la fuente de verdad para fechas, estados, contadores y montos.
-Después de crear, editar, registrar, pausar o reanudar, vuelve a consultar el
-listado correspondiente.
+El backend es la fuente de verdad para montos, estados, ritmo, aporte sugerido,
+porcentaje, dinero reservado y gráfico. No calcules esos valores nuevamente en
+el frontend. Después de cualquier operación, consulta otra vez la meta y las
+cuentas afectadas.
 
-## Días personalizados en los tres módulos
+Todas las peticiones requieren `Authorization: Bearer <token>`.
 
-Pagos Recurrentes, Pagos Variables y Suscripciones admiten ahora:
+## Concepto principal
 
-```text
-frequency: CUSTOM_DAYS
-customDays: number[]
+Una meta no crea ni representa una cuenta nueva. El dinero siempre permanece en
+una cuenta real y la meta reserva una parte de ese saldo.
+
+- Varias metas pueden usar la misma cuenta destino.
+- No permitas seleccionar tarjetas de crédito como origen o destino.
+- Si origen y destino son la misma cuenta, el aporte reserva saldo sin crear un
+  movimiento.
+- Si son diferentes, el aporte crea una transferencia real hacia la cuenta
+  destino y reserva allí el dinero.
+- El dinero reservado no puede usarse en gastos o transferencias normales.
+
+## Listado
+
+```http
+GET /api/goals?period=YYYY-MM&view=all
 ```
 
-Cuando el usuario seleccione la frecuencia **Días personalizados**, muestra un
-selector que permita elegir uno o varios números del 1 al 31.
+Filtros admitidos:
 
-Ejemplo:
+```text
+view: all | active | paused | overdue | completed | cancelled
+type: SAVINGS | EMERGENCY_FUND | SPECIFIC_PURCHASE | DEBT_PAYMENT | OTHER
+```
+
+La respuesta contiene:
+
+- `goals`: tarjetas calculadas por el backend.
+- `counts`: cantidades por estado.
+- `summary.totalReserved`: dinero actualmente reservado.
+- `summary.totalTarget`: suma de los objetivos.
+- `summary.activeGoals`: activas, pausadas y vencidas.
+- `summary.completedThisYear`.
+- `summary.periodContributionAmount` y `periodContributionCount` para el mes
+  seleccionado.
+
+Cada tarjeta debe mostrar:
+
+- nombre, tipo, descripción, fecha límite y cuenta destino;
+- `savedAmount`, `targetAmount`, `remainingAmount` y `progressPercentage`;
+- `suggestedContribution`, `remainingPeriods` y `nextSuggestedDate`;
+- `paceAmount`, `paceStatus`, `viewStatus` y `reservedAmount`.
+
+Estados entregados por el backend:
+
+```text
+viewStatus: ACTIVE | PAUSED | OVERDUE | COMPLETED | CANCELLED
+paceStatus: AHEAD | ON_TRACK | BEHIND | PAUSED | OVERDUE | COMPLETED
+```
+
+No determines los estados comparando fechas en el frontend. Usa exactamente los
+valores recibidos.
+
+## Crear una meta
+
+```http
+POST /api/goals
+Content-Type: application/json
+```
 
 ```json
 {
-  "frequency": "CUSTOM_DAYS",
-  "customDays": [5, 15, 31]
+  "name": "Ahorrar S/ 8,400 este año",
+  "description": "Fondo anual",
+  "type": "SAVINGS",
+  "targetAmount": 8400,
+  "startDate": "2026-01-01",
+  "deadline": "2026-12-31",
+  "frequency": "MONTHLY",
+  "destinationAccountId": 4
+}
+```
+
+Campos del formulario:
+
+- Nombre obligatorio.
+- Descripción opcional.
+- Tipo de meta obligatorio.
+- Monto objetivo obligatorio.
+- Fecha de inicio obligatoria.
+- Fecha límite obligatoria.
+- Frecuencia: `DAILY`, `WEEKLY` o `MONTHLY`.
+- Cuenta destino obligatoria.
+
+La cuenta destino es donde se guardará físicamente el dinero. No crees cuentas
+automáticamente. Si el usuario no tiene una cuenta apropiada, muestra un enlace
+para ir a Cuentas y crearla manualmente.
+
+## Editar
+
+```http
+PATCH /api/goals/:id
+```
+
+Envía solamente los campos modificados.
+
+- Si ya existen aportes, bloquea la fecha inicial y la cuenta destino.
+- El objetivo no puede ser menor que el monto ya ahorrado.
+- Cambiar objetivo, plazo o frecuencia modifica el plan futuro y conserva el
+  historial anterior.
+- Después de editar, usa la respuesta del backend para actualizar aporte
+  sugerido, ritmo y gráfico.
+
+## Registrar aporte
+
+Abre un formulario lateral con:
+
+- meta seleccionada y avance actual;
+- monto sugerido como referencia;
+- monto del aporte editable y obligatorio;
+- cuenta de origen obligatoria;
+- fecha del aporte, por defecto hoy.
+
+```http
+POST /api/goals/:id/contributions
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": 700,
+  "sourceAccountId": 1,
+  "contributedOn": "2026-08-26"
 }
 ```
 
 Reglas:
 
-- `customDays` es obligatorio únicamente con `CUSTOM_DAYS`.
-- No envíes números repetidos.
-- Las fechas elegidas se repiten cada mes.
-- Si un día no existe en un mes, se usa el último día disponible.
-- Por ejemplo, el día 31 se convierte en 28 de febrero de 2026.
-- Si dos números terminan convertidos en la misma fecha, existe una sola
-  ocurrencia.
-- Al cambiar a otra frecuencia, no envíes `customDays`.
-- Al editar los días, el cambio afecta las ocurrencias futuras. El historial ya
-  registrado se conserva.
+- No aceptar fechas futuras ni anteriores al inicio de la meta.
+- El aporte no puede superar `remainingAmount`.
+- Mostrar el saldo disponible sin reservar de la cuenta, no solo el saldo total.
+- Si origen y destino coinciden, informar: “Se reservará dinero de esta cuenta;
+  no se creará una transferencia”.
+- Si son diferentes, informar: “Se transferirá el dinero a la cuenta destino y
+  quedará reservado para esta meta”.
+- El usuario puede aportar más o menos que `suggestedContribution`.
+- Al alcanzar el objetivo, la meta pasa automáticamente a `COMPLETED`.
 
-## Bloqueo de registros futuros
+Los aportes atrasados no se convierten en deudas. El backend recalcula el monto
+sugerido usando el dinero faltante y los periodos restantes.
 
-Aplica estas reglas en los tres módulos:
-
-- Nunca habilites una ocurrencia cuya fecha sea posterior a la fecha real actual.
-- El backend también rechaza fechas futuras con estado HTTP `409`.
-- Cada ocurrencia se registra una sola vez.
-- Después de registrarla, bloquea o elimina su botón de registro.
-- Una ocurrencia vencida sí puede registrarse posteriormente.
-- Los vencidos se registran individualmente porque cada uno puede tener un monto
-  real diferente.
-- Pueden registrarse varios vencidos el mismo día, pero uno por uno.
-- Cada registro conserva su `occurrenceDate` original.
-- La fecha real del registro puede ser hoy aunque la ocurrencia sea anterior.
-
-Comportamiento por frecuencia:
-
-- Diaria: como máximo una ocurrencia por día.
-- Semanal: después de registrar la ocurrencia disponible, la siguiente permanece
-  bloqueada hasta que llegue su fecha.
-- Días personalizados: solo pueden registrarse los días elegidos que ya hayan
-  llegado.
-
-En el formulario de registro muestra el monto esperado unitario como valor
-inicial, permite cambiar el monto real y envía la fecha original en
-`occurrenceDate`.
-
-## Pagos Recurrentes
-
-Frecuencias disponibles:
-
-```text
-DAILY
-WEEKLY
-BIWEEKLY
-MONTHLY
-QUARTERLY
-ANNUAL
-CUSTOM_DAYS
-```
-
-Orden exacto de pestañas:
-
-1. Pendientes
-2. Pausados
-3. Vencidos
-4. Finalizados
-5. Todos
-
-Consultas:
-
-```text
-GET /api/recurring-payments?period=YYYY-MM&view=pending
-GET /api/recurring-payments?period=YYYY-MM&view=paused
-GET /api/recurring-payments?period=YYYY-MM&view=overdue
-GET /api/recurring-payments?period=YYYY-MM&view=finished
-GET /api/recurring-payments?period=YYYY-MM&view=all
-```
-
-Cada tarjeta debe mostrar:
-
-- `expectedAmount`: monto esperado unitario.
-- `periodExpectedAmount`: monto esperado total del mes.
-- `confirmedCount`, `expectedConfirmations` y `progress`.
-- `pendingCount` y `overdueCount`.
-- `nextOccurrenceDate`.
-- `viewStatus`: `PENDING`, `PAUSED`, `OVERDUE` o `FINISHED`.
-
-Una tarjeta es `OVERDUE` cuando conserva al menos una ocurrencia pendiente cuya
-fecha ya pasó. Después de registrar todos los vencidos:
-
-- pasa a Pendientes si todavía existen fechas futuras del mes;
-- pasa a Finalizados si completó todas las ocurrencias del mes.
-
-## Pagos Variables
-
-Frecuencias disponibles:
-
-```text
-DAILY
-WEEKLY
-MONTHLY
-CUSTOM_DAYS
-```
-
-Los días personalizados se calculan únicamente dentro del `period` de la
-tarjeta. La tarjeta no se replica en meses posteriores.
-
-Orden exacto de pestañas:
-
-1. Pendientes
-2. Confirmados
-3. Vencidos
-4. Todos
-
-Consultas:
-
-```text
-GET /api/variable-payments?period=YYYY-MM&view=pending
-GET /api/variable-payments?period=YYYY-MM&view=confirmed
-GET /api/variable-payments?period=YYYY-MM&view=overdue
-GET /api/variable-payments?period=YYYY-MM&view=all
-```
-
-Cada tarjeta debe mostrar:
-
-- `expectedAmount`: monto esperado unitario.
-- `periodExpectedAmount`: total esperado del mes.
-- `confirmedCount`, `expectedConfirmations` y `progress`.
-- `pendingCount` y `overdueCount`.
-- `nextOccurrenceDate`.
-- `viewStatus`: `PENDING`, `CONFIRMED` u `OVERDUE`.
-
-Un pago variable de un mes anterior puede registrarse tarde. El movimiento real
-se crea en la fecha de registro y conserva su relación con la ocurrencia original.
-
-## Suscripciones
-
-Conserva la opción existente `CUSTOM_MONTHS` con `intervalMonths` y añade por
-separado `CUSTOM_DAYS` con `customDays`.
-
-Frecuencias disponibles:
-
-```text
-DAILY
-WEEKLY
-MONTHLY
-ANNUAL
-CUSTOM_MONTHS
-CUSTOM_DAYS
-```
-
-No envíes `intervalMonths` con `CUSTOM_DAYS` ni `customDays` con
-`CUSTOM_MONTHS`.
-
-Orden exacto de pestañas:
-
-1. Pendientes
-2. Pausadas
-3. Vencidas
-4. Finalizadas
-5. Todas
-
-Consultas:
-
-```text
-GET /api/subscriptions?period=YYYY-MM&view=pending
-GET /api/subscriptions?period=YYYY-MM&view=paused
-GET /api/subscriptions?period=YYYY-MM&view=overdue
-GET /api/subscriptions?period=YYYY-MM&view=finished
-GET /api/subscriptions?period=YYYY-MM&view=all
-```
-
-El backend todavía acepta `view=confirmed` por compatibilidad, pero el frontend
-nuevo debe utilizar `view=finished`.
-
-Cada tarjeta debe mostrar:
-
-- `expectedAmount`: monto unitario.
-- `periodExpectedAmount`: total esperado del mes.
-- `projectedCostNext12Months`.
-- `confirmedCount`, `expectedConfirmations` y `progress`.
-- `pendingCount` y `overdueCount`.
-- `nextRenewalDate`.
-- `viewStatus`: `PENDING`, `PAUSED`, `OVERDUE`, `FINISHED` o `NO_DUE`.
-
-`NO_DUE` aparece únicamente en Todas cuando una suscripción anual o por cantidad
-de meses no tiene renovación en el mes seleccionado.
-
-## Rendimiento en el detalle de Cuentas
-
-Consulta el detalle usando el mes seleccionado en el calendario global:
+## Eliminar un aporte
 
 ```http
-GET /api/accounts/:id?period=YYYY-MM
+DELETE /api/goals/:id/contributions/:contributionId
 ```
 
-Para cuentas que no son tarjetas de crédito, la respuesta incluye
-`account.performance`:
+Pide confirmación antes de eliminarlo.
 
-```json
-{
-  "period": "2026-08",
-  "openingBalance": 3000,
-  "expectedIncome": 500,
-  "expectedExpense": 1000,
-  "expectedClosingBalance": 2500,
-  "actualBalanceToDate": 2700,
-  "projectedClosingBalance": 2550,
-  "cushion": 50,
-  "chart": []
-}
+- Si fue una reserva, se libera esa parte del saldo.
+- Si creó una transferencia, el backend la revierte.
+- Si la cuenta destino no tiene saldo disponible para revertirla, el backend
+  responde `409`. Muestra el mensaje y conserva el aporte en pantalla.
+- Si una meta completada deja de alcanzar el objetivo, vuelve a activa.
+
+## Pausar y reanudar
+
+```http
+POST /api/goals/:id/pause
+POST /api/goals/:id/resume
 ```
 
-Significado:
+Pausar no cambia la fecha límite. Al reanudar, el backend conserva el plazo
+original y recalcula el monto sugerido, que podría aumentar.
 
-- `openingBalance`: saldo con el que comenzó el mes.
-- `expectedIncome`: ingresos planificados del mes.
-- `expectedExpense`: gastos planificados del mes.
-- `expectedClosingBalance`: resultado esperado al cerrar el mes.
-- `actualBalanceToDate`: saldo real alcanzado con movimientos confirmados.
-- `projectedClosingBalance`: saldo actual más ingresos y gastos pendientes.
-- `cushion`: proyección menos resultado esperado.
+## Eliminar o cancelar
 
-Muestra `cushion`:
+```http
+DELETE /api/goals/:id
+POST /api/goals/:id/cancel
+```
 
-- positivo: verde y con signo `+`;
-- negativo: rojo;
-- cero: color neutral.
+- Sin aportes: `DELETE` elimina completamente la meta.
+- Con aportes: `DELETE` la cancela y conserva el historial.
+- Cancelar libera el dinero reservado, pero no lo devuelve automáticamente a la
+  cuenta de origen. El saldo permanece en la cuenta destino.
+- La respuesta incluye `cancellationType`: `DELETED` o `HISTORICAL`.
 
-No sumes `cushion` nuevamente al saldo actual. Solo es un indicador comparativo.
+## Usar fondos
 
-### Gráfico
+En una meta `COMPLETED`, muestra la acción **Usar fondos**:
 
-`chart` contiene exactamente seis meses y termina en el mes seleccionado.
+```http
+POST /api/goals/:id/use-funds
+```
 
-Dibuja dos líneas:
+Esta acción libera la reserva para que el saldo pueda gastarse o transferirse.
+No crea un gasto ni mueve dinero. El usuario registra después el gasto o la
+transferencia real desde el módulo correspondiente.
 
-- Esperado: `expectedClosingBalance`, gris y discontinua.
-- Real/proyectado: `projectedClosingBalance`, línea principal.
+## Detalle de una meta
 
-Cada punto puede ser verde si `cushion` es positivo, rojo si es negativo y
-neutral si es cero.
+```http
+GET /api/goals/:id
+```
 
-El backend ya incluye los ingresos, gastos y transferencias reales en la
-proyección. Las transferencias no forman parte del monto esperado porque no son
-planificaciones.
+Construye la vista con:
 
-Para tarjetas de crédito, `performance` es `null`. No dibujes este gráfico para
-esas cuentas.
+- barra de progreso y porcentaje;
+- tarjetas Ahorrado, Falta, Aporte sugerido y Ritmo;
+- gráfico esperado contra real usando `chart`;
+- historial usando `contributions`;
+- botón Registrar aporte;
+- acciones Editar, Pausar/Reanudar, Cancelar y, cuando corresponda, Usar fondos.
 
-## Actualización de interfaz
+Para el gráfico:
 
-- Usa el mes global en todas las consultas.
-- Al cambiar de mes, vuelve a consultar los tres módulos y el detalle de Cuentas.
-- Después de una operación exitosa, vuelve a consultar la lista; no calcules los
-  estados manualmente.
-- Si el backend responde `409` por una fecha futura o duplicada, muestra su
-  mensaje y actualiza la tarjeta.
-- Conserva el monto real de Cuentas; las diferencias y el colchón son indicadores
-  separados.
+- línea esperada: `expectedAmount`, gris y discontinua;
+- línea real: `actualAmount`, línea principal;
+- `actualAmount: null` representa un mes futuro; no inventes un punto real;
+- conserva exactamente el orden recibido en `chart`.
+
+Aunque la frecuencia sea diaria o semanal, el gráfico se presenta agrupado por
+meses.
+
+## Integración con Cuentas
+
+Estas consultas incluyen datos nuevos:
+
+```http
+GET /api/accounts
+GET /api/accounts/summary
+GET /api/accounts/:id
+```
+
+En cada cuenta muestra por separado:
+
+- `currentBalance`: saldo total real.
+- `goalReservedAmount`: dinero reservado para metas.
+- `availableUnreservedBalance`: saldo que todavía puede utilizarse.
+
+En el resumen general utiliza:
+
+- `totalGoalReserved`.
+- `totalAvailableUnreserved`.
+
+No vuelvas a restar la reserva: `availableUnreservedBalance` ya viene calculado.
+Una cuenta con dinero reservado no puede inactivarse. Muestra los mensajes `409`
+del backend tal como llegan.
+
+## Actualización obligatoria
+
+Después de crear, editar, aportar, eliminar un aporte, pausar, reanudar, cancelar,
+eliminar o usar fondos:
+
+1. vuelve a consultar la meta o el listado;
+2. vuelve a consultar las cuentas afectadas;
+3. usa los nuevos valores del backend;
+4. no ajustes manualmente saldos, ritmo ni progreso en el estado local.
 
 ## Pruebas obligatorias del frontend
 
-- Crear y editar días personalizados en los tres módulos.
-- Verificar que el día 31 use el último día de un mes corto.
-- No habilitar ni enviar fechas futuras.
-- Registrar individualmente varios vencidos el mismo día.
-- Verificar el cambio Vencido a Pendiente o Finalizado.
-- Respetar el orden exacto de las pestañas.
-- Mostrar monto unitario y total del periodo por separado.
-- Cambiar el mes global y actualizar estados y rendimiento.
-- Dibujar los seis meses del gráfico.
-- Aplicar colores correctos al colchón positivo, negativo y cero.
-- No dibujar rendimiento cuando `performance` sea `null`.
+- Crear una meta con cada tipo y frecuencia.
+- Aportar usando la misma cuenta destino y comprobar que solo se reserva saldo.
+- Aportar desde otra cuenta y comprobar la transferencia.
+- Mostrar saldo total, reservado y disponible.
+- Impedir seleccionar una tarjeta de crédito.
+- Mostrar todos los estados y ritmos recibidos.
+- Editar conservando el historial anterior.
+- Verificar que el gráfico esperado/real se actualice.
+- Eliminar un aporte de reserva y uno de transferencia.
+- Mostrar correctamente errores `400`, `404` y `409`.
+- Pausar y reanudar sin cambiar la fecha límite.
+- Completar una meta y usar sus fondos.
+- Eliminar una meta vacía y cancelar otra con historial.
