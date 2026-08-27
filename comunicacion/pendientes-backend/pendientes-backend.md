@@ -80,6 +80,49 @@ Aprovechando el mismo fix: como ya reportamos antes, ese `DEFAULT_CATEGORIES` ta
 
 Subcategorias por default son un plus deseable (el piloto `lumen-next` las tiene) pero no bloqueante — lo bloqueante es que hoy un usuario nuevo no tiene absolutamente ninguna categoria.
 
+## Notificaciones: acoplar generacion y lectura no escala para SaaS
+
+Revisamos `GET /api/notifications` (`src/modules/notifications/notifications.service.js`). Hoy `listNotifications` llama `synchronizeNotifications(userId)` **de forma sincronica en cada request**, antes de devolver la lista. `synchronizeNotifications` carga eventos de calendario (ventana de 33 dias), recalcula presupuestos completos y metas completas, y recien despues lee la tabla `Notification`. O sea: generar y leer estan pegados en el mismo endpoint.
+
+Con el flujo que ya recomendamos para el frontend (consultar al cargar la app, al abrir la campana, tras cada mutacion de pagos, y opcionalmente cada 60s mientras este abierta), eso significa recalcular calendario+presupuesto+metas completos hasta una vez por minuto por cada pestaña activa. Funciona bien con pocos usuarios de prueba; con trafico real de SaaS (muchos usuarios, muchas pestañas abiertas en simultaneo) escala mal — cada poll de cada usuario dispara la misma agregacion pesada.
+
+Dos hallazgos concretos, no opiniones:
+
+**1. `createOrRefreshNotification` deja el `message`/`amount` desactualizado dentro del mismo nivel de alerta.**
+
+```js
+if (existing.type !== data.type) {
+    await prisma.notification.update({ where: { id: existing.id }, data: { ...data, isRead: false, readAt: null } });
+}
+// si existing.type === data.type, no actualiza nada
+```
+
+Analogia: es como la luz de bateria baja del carro — se prende con "15%" y aunque la bateria siga bajando a 8%, 5%, 2%, el tablero sigue mostrando "15%" porque solo se refresca cuando la luz CAMBIA de color, no mientras siga siendo la misma alerta. Aca pasa igual: una notificacion `BUDGET_NEAR_LIMIT` creada cuando el gasto real era S/120 se queda mostrando "S/120" para siempre, aunque el usuario ya vaya en S/450, mientras siga sin cruzar a `EXCEEDED`.
+
+Pedido: que el `update` corra siempre que cambien `message`/`amount`/`dueDate` (no solo cuando cambia `type`), no solo cuando escala de nivel.
+
+**2. Generacion y lectura deberian desacoplarse antes de escalar trafico.**
+
+Analogia: hoy es como pedirle al mozo que, cada vez que un cliente pregunta "¿mi mesa ya esta?", recuente TODAS las mesas del restaurante de cero antes de contestar — en vez de mantener una lista de "mesas listas" que se actualiza sola cuando una mesa se libera, y que el mozo solo consulta. Con 5 clientes preguntando no se nota; con 5000 preguntando cada minuto, el mozo no hace otra cosa.
+
+Estrategia sugerida (arquitectura estandar de "servicio de notificaciones" en SaaS — no requiere websocket, la lectura sigue siendo polling del lado frontend):
+
+- **Generar en el momento del evento real** (event-driven): cuando una accion del propio usuario cambia el estado (confirmar un movimiento que empuja un presupuesto a 80%, por ejemplo), generar la notificacion ahi mismo, dentro de esa misma transaccion — ya se tienen los datos cargados, sale gratis y es mas instantaneo que ahora.
+- **Un job programado** (cron corriendo para TODOS los usuarios de una sola pasada, ej. cada hora o una vez al dia) para lo que depende solo del paso del tiempo — pagos que se vuelven vencidos, metas que se atrasan sin que el usuario haga nada.
+- **`GET /notifications` pasa a ser una lectura pura** de la tabla `Notification` (query indexada, barata), sin recalcular nada — puede pollearse cada 60s sin problema sin importar cuantos usuarios esten activos.
+
+Paso intermedio barato si no quieren meter cron todavia: un `lastSyncedAt` por usuario, y solo correr `synchronizeNotifications` si paso, por ejemplo, mas de 5 minutos desde la ultima vez — sin infraestructura nueva, tapa el peor caso mientras deciden si construyen el job de verdad.
+
+No bloqueante para empezar a integrar notificaciones en el frontend ahora mismo (funciona correctamente con el volumen actual), pero conviene resolverlo antes de que el sistema reciba trafico real de SaaS.
+
+## Bug menor: GET /api/dashboard - emptyState.hasBudget siempre da false
+
+Reproducido integrando el nuevo endpoint en el frontend. `dashboard.service.js` calcula `emptyState.hasBudget` como `report.budget?.general?.limitAmount != null`, pero `report.budget` (reusa el shape de `getReport`) no tiene una propiedad `.general` — `limitAmount` esta directo en la raiz (`report.budget.limitAmount`). Esa expresion siempre da `undefined != null` -> `false`, aunque el usuario tenga un presupuesto real configurado con limite.
+
+No bloqueante: el frontend ya lo esquiva derivando el flag localmente (`data.budget && data.budget.limitAmount !== null`, mismo patron que ya usa Reportes), asi que la card de presupuesto del dashboard funciona bien. Pero el campo `emptyState.hasBudget` en si mismo esta mal y cualquier otro consumidor futuro de este endpoint que confie en el va a fallar igual.
+
+Arreglo sugerido: en `dashboard.service.js`, cambiar `report.budget?.general?.limitAmount != null` por `report.budget?.limitAmount != null`.
+
 ## Pendiente principal
 
 ### GET /api/accounts/:id/summary
