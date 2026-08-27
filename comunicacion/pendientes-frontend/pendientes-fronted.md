@@ -233,3 +233,60 @@ tipo de cambio. Al cancelar o eliminar, el backend revierte ambos saldos.
 
 No sumar ni comparar montos de monedas diferentes en una sola tarjeta. Mostrar
 cada saldo con su moneda; una conversión global a moneda base no existe todavía.
+
+# Configuración: preferencias de notificaciones
+
+En **Configuración > Notificaciones** mostrar únicamente tres interruptores
+reales. No mostrar por ahora opciones de correo ni noticias del producto,
+porque esas funciones no existen todavía.
+
+Al abrir esta sección consultar:
+
+```text
+GET /api/notifications/preferences
+Authorization: Bearer <token>
+```
+
+La respuesta es:
+
+```json
+{
+  "preferences": {
+    "budgetAlertsEnabled": true,
+    "paymentRemindersEnabled": true,
+    "goalAlertsEnabled": true
+  }
+}
+```
+
+Interruptores y textos:
+
+- **Alertas de presupuesto**: “Te avisamos al 50 %, 80 % y cuando superes tu
+  presupuesto.” Usa `budgetAlertsEnabled`.
+- **Pagos y cobros próximos**: “Te recordamos pagos o cobros próximos y
+  vencidos.” Usa `paymentRemindersEnabled`.
+- **Avance de metas**: “Te avisamos si una meta se atrasa, vence o se completa.”
+  Usa `goalAlertsEnabled`.
+
+Todos vienen activos por defecto. Al cambiar uno, enviar solo ese campo:
+
+```text
+PATCH /api/notifications/preferences
+Authorization: Bearer <token>
+```
+
+Ejemplo:
+
+```json
+{
+  "paymentRemindersEnabled": false
+}
+```
+
+Esperar la respuesta antes de confirmar visualmente el interruptor; si falla,
+volver al valor anterior y mostrar el error. Después de guardar, volver a
+consultar `GET /api/notifications` para actualizar la insignia de la campana.
+
+Cuando un grupo está desactivado, sus avisos no aparecen ni cuentan en la
+campana. No se borran del historial: al reactivarlo, pueden mostrarse de nuevo
+si aún siguen vigentes.
