@@ -290,3 +290,64 @@ consultar `GET /api/notifications` para actualizar la insignia de la campana.
 Cuando un grupo está desactivado, sus avisos no aparecen ni cuentan en la
 campana. No se borran del historial: al reactivarlo, pueden mostrarse de nuevo
 si aún siguen vigentes.
+
+# Ajuste: rendimiento de una cuenta
+
+En el detalle de una cuenta, consultar como hasta ahora:
+
+```text
+GET /api/accounts/:id?period=YYYY-MM
+Authorization: Bearer <token>
+```
+
+Usar `account.performance`. El backend ya calcula el **resultado esperado**
+sin adelantar ingresos que todavía no se han recibido:
+
+```text
+resultado esperado = saldo inicial del mes
+                    - total de gastos esperados
+                    + ingresos realmente registrados
+```
+
+Por eso, no sumar `plannedIncome` al resultado esperado. Es solo un dato
+informativo de ingresos que se habían planeado, pero aún no existen como dinero
+real.
+
+Campos principales:
+
+```text
+openingBalance          saldo con el que abrió el mes
+expectedExpense         total de gastos esperados del mes
+registeredIncome        ingresos confirmados que ya entraron a esta cuenta
+expectedResult          resultado esperado; es igual a expectedClosingBalance
+realResult              saldo real de la cuenta hasta el momento
+cushion                 realResult - expectedResult
+isAboveExpected         true si el saldo real está por encima de lo esperado
+```
+
+## Tarjeta de resumen
+
+- Mostrar **Monto inicial del mes** con `openingBalance`.
+- Mostrar **Resultado esperado** con `expectedResult`.
+- Mostrar claramente: “Ingresos registrados: … · Gastos esperados: …”.
+- Si `cushion` es positivo, mostrar **“+S/ … sobre lo esperado”** en verde.
+- Si es negativo, mostrar **“−S/ … bajo lo esperado”** en rojo.
+- Si vale cero, mostrar “Vas exactamente según lo esperado” en un color neutro.
+
+## Gráfica «Rendimiento del mes»
+
+Usar `performance.chart`; cada punto mensual incluye los mismos campos.
+
+- Dibujar la línea **Esperado** con `expectedResult` o
+  `expectedClosingBalance`, en gris y punteada.
+- Dibujar la línea **Real** con `realResult` o `actualBalanceToDate`, en verde
+  continuo. Si está por debajo de la línea esperada, resaltar ese punto o tramo
+  en rojo.
+- La diferencia vertical entre ambas líneas representa el colchón: cuando la
+  línea real esté arriba hay dinero sobrante; cuando esté abajo se está por
+  debajo de lo esperado.
+- Convertir cada valor a un número seguro antes de dibujar. Para `null`,
+  `undefined`, valores no numéricos o `NaN`, usar `0`; nunca enviar `NaN` a SVG
+  ni a la librería de gráficos.
+- En el tooltip de cada punto mostrar saldo inicial, gastos esperados, ingresos
+  registrados, resultado esperado, saldo real y colchón.
