@@ -1,353 +1,295 @@
-# Nuevo módulo: Dashboard
+# Corrección de campos monetarios en el frontend
 
-Crear la pantalla **Dashboard** usando una sola consulta:
+Corrige todos los campos donde el usuario ingresa dinero. Esto incluye cuentas,
+movimientos, deudas, préstamos, metas, presupuestos, pagos recurrentes, pagos
+variables y suscripciones.
 
-```text
-GET /api/dashboard?period=YYYY-MM
-Authorization: Bearer <token>
+El formulario de cuentas rechaza valores como `956.63` porque está configurado
+para aceptar solo enteros (`step="1"`). El backend sí acepta decimales; esta
+corrección es únicamente del frontend.
+
+## Configuración
+
+Usar en cada campo monetario una configuración equivalente a:
+
+```html
+<input type="number" min="0" step="0.01" />
 ```
 
-El `period` debe ser el mes seleccionado de forma global en la aplicación. Si
-no se envía, el backend usa el mes actual. No recalcular montos en el frontend:
-la respuesta ya entrega valores reales, proyecciones, comparaciones y datos
-para los gráficos.
+Reglas:
 
-## Encabezado
+- Permitir enteros y hasta dos decimales: `956.63`, `1000.50`, `0.25`.
+- No usar `step="1"` ni redondear mientras el usuario escribe.
+- Permitir temporalmente `956.` para que pueda terminar de escribir.
+- Validar de forma definitiva al enviar el formulario.
+- Rechazar negativos, valores vacíos, texto y números no finitos.
+- Rechazar valores con más de dos decimales.
+- Convertir a número antes de enviarlo a la API.
+- No enviar `NaN`, `Infinity`, `undefined` ni cadenas vacías.
+- Mantener el formato monetario visual sin alterar el valor real enviado.
 
-- Saludar con `user.name`.
-- Mostrar el mes de `period`.
-- El botón **Registrar gasto** abre el flujo de gasto manual ya existente.
-- Las acciones rápidas abren los flujos ya existentes de gasto, ingreso,
-  transferencia y aporte a meta; no crean movimientos desde el dashboard por
-  su cuenta.
+## Mensajes
 
-## Tarjetas superiores
+Mostrar mensajes claros en español:
 
-Usar `summary`:
+- `Ingresa un monto válido.`
+- `El monto no puede ser negativo.`
+- `El monto puede tener como máximo dos decimales.`
 
-```text
-summary.totalBalance
-summary.activeAccounts
-summary.income.actualAmount
-summary.income.projectedAmount
-summary.income.comparisonPercentage
-summary.expense.actualAmount
-summary.expense.projectedAmount
-summary.expense.comparisonPercentage
-summary.net.actualAmount
-summary.net.projectedAmount
-summary.net.savingsRatePercentage
-summary.currency
-```
+No cambiar endpoints, nombres de propiedades ni contratos del backend. Mantener
+los estilos y componentes actuales.
 
-- **Saldo total**: `totalBalance` y cantidad de cuentas activas.
-- **Ingresos del mes**, **Egresos del mes** y **Balance del mes** muestran el
-  monto real confirmado. Si la proyección es distinta, mostrarla como “Al cierre
-  del mes: S/ …”, sin sumarla al monto real.
-- Para comparaciones `null`, mostrar “Sin referencia anterior”.
+## Pruebas obligatorias
 
-## Ingresos vs Egresos
-
-Usar `charts.incomeExpenseTrend`. Hay seis puntos mensuales; cada punto tiene:
+Confirmar que todos los formularios permitan guardar:
 
 ```text
-label
-incomeActualAmount
-expenseActualAmount
-incomePlannedAmount
-expensePlannedAmount
-netActualAmount
-netProjectedAmount
+956.63
+1000.50
+0.25
+1000
 ```
 
-Mostrar líneas verdes y rojas con los montos reales. Las cantidades planeadas
-deben verse de forma diferenciada (línea punteada, etiqueta o tooltip), nunca
-como dinero confirmado. Antes de dibujar, convertir los valores vacíos,
-`null`, `undefined` o no numéricos a `0`; nunca usar coordenadas SVG con `NaN`
-ni dividir entre cero. Si el gráfico no tiene datos, mostrar un estado vacío.
-
-## Gastos por categoría
-
-Usar `expensesByCategory.categories` para la dona y la lista. Cada elemento
-incluye `category`, `actualExpenseAmount`, `plannedExpenseAmount` y
-`projectedExpenseAmount`.
-
-Si `emptyState.hasExpenseCategories` es `false`, mostrar “Aún no hay gastos
-confirmados este mes” en vez de una dona vacía o con valores inventados.
-
-## Presupuesto y metas
-
-- Usar `budget` para la tarjeta **Presupuesto del mes**. Puede ser `null` o no
-  tener límite general. En ese caso, mostrar “Sin presupuesto general
-  configurado” y un enlace a Presupuestos.
-- La barra usa el monto real `budget.general.actualExpenseAmount`; la proyección
-  se muestra aparte con `projectedExpenseAmount`.
-- Mostrar hasta tres categorías con límite desde `budget.categories`.
-- Usar `goals.activeCount` y `goals.items` para **Metas destacadas**. Cada meta
-  ya incluye avance, porcentaje, estado y aporte sugerido. Si no hay metas,
-  mostrar un enlace para crear una.
-
-## Parte inferior
-
-- **Últimos movimientos**: usar `recentMovements`; son como máximo seis
-  movimientos confirmados del mes seleccionado.
-- **Cuentas principales**: usar `accounts`; mostrar nombre, tipo, saldo actual,
-  moneda y distinguir la cuenta principal cuando `isPrimary` sea verdadero.
-- **Próximos pagos**: usar `upcomingPayments`. Cada ítem ya trae fecha, monto,
-  dirección, estado, tipo y `source` para navegar al módulo correspondiente.
-- Si no hay datos, usar los indicadores de `emptyState` y mostrar mensajes
-  claros en lugar de tarjetas o gráficos vacíos.
-
-# Nuevo módulo: Notificaciones dentro de la aplicación
-
-El ícono de campana debe consultar:
+Y rechacen correctamente:
 
 ```text
-GET /api/notifications?status=all&limit=20
-Authorization: Bearer <token>
+-10
+12.345
+texto
 ```
 
-Hacer la consulta al cargar la aplicación, cada vez que se abra la campana y
-después de registrar, omitir, pausar, reanudar o editar un pago. También puede
-actualizarse cada 60 segundos mientras la aplicación esté abierta.
+No deben aparecer advertencias de React ni mensajes de validación del navegador
+al ingresar un monto válido con dos decimales.
 
-La respuesta tiene:
+# Días personalizados en pagos recurrentes, variables y suscripciones
+
+Cuando el usuario seleccione **Días personalizados**, mostrar primero dos
+modalidades:
 
 ```text
-unreadCount
-notifications[]
+Días de la semana
+Días específicos del mes
 ```
 
-Mostrar `unreadCount` como una insignia sobre la campana solo cuando sea mayor
-que cero. Cada notificación incluye:
+## Días de la semana
+
+Mostrar botones seleccionables en este orden:
 
 ```text
-id
-type
-title
-message
-amount
-currency
-dueDate
-sourceModule
-sourceId
-sourceAction
-isRead
-createdAt
+Lun · Mar · Mié · Jue · Vie · Sáb · Dom
 ```
 
-## Panel de la campana
+Esta opción sirve para reglas como **Pasajes laborales**. Si el usuario marca
+lunes a viernes, la recurrencia debe calcularse automáticamente en cada mes y
+no debe crear ocurrencias los sábados ni domingos.
 
-- Mostrar las no leídas primero.
-- Si no hay notificaciones, mostrar: **“Estás al día. No tienes notificaciones
-  nuevas.”**
-- Si `amount` y `currency` existen, formatear el importe según la moneda:
-  `PEN` como `S/`, `USD` como `US$`; no convertir monedas ni sumar importes de
-  monedas diferentes.
-- Diferenciar visualmente pago próximo, pago vencido, presupuesto al 50/80/100
-  %, meta atrasada, meta vencida y meta completada.
-- Al hacer clic en una notificación, navegar según `sourceModule` y `sourceId`;
-  luego marcarla como leída.
-
-Para marcar una como leída:
-
-```text
-PATCH /api/notifications/:id/read
-```
-
-Para marcar todas como leídas:
-
-```text
-PATCH /api/notifications/read-all
-```
-
-No usar notificaciones del navegador ni correo por ahora. Todo se muestra
-solamente dentro de la aplicación.
-
-# Transferencias entre monedas
-
-Las cuentas ya traen su moneda en `currency` (por ejemplo `PEN` o `USD`). Al
-crear o editar una transferencia, comparar la moneda de la cuenta de origen
-con la de destino.
-
-- Si ambas monedas son iguales, conservar el formulario actual: solo se pide el
-  monto enviado. No mostrar conversión.
-- Si las monedas son distintas, mostrar claramente:
-  - **Monto enviado** y la moneda de origen.
-  - **Monto que recibirá la cuenta destino** y la moneda de destino.
-  - **Tipo de cambio** opcional, con la ayuda: “cuánto recibe la moneda destino
-    por cada unidad enviada”.
-- El usuario debe ingresar el monto recibido **o** el tipo de cambio. Si llena
-  uno, calcular y mostrar el otro como vista previa. Si llena ambos y no
-  coinciden, mostrar un error antes de enviar.
-- No consultar ni inventar cotizaciones automáticas por ahora. El usuario
-  indica el dato real de su operación.
-
-Crear una transferencia:
-
-```text
-POST /api/movements/transfer
-Authorization: Bearer <token>
-```
-
-Ejemplo de S/ 380 que se convierten a US$ 100:
+Enviar los días usando valores ISO de lunes a domingo:
 
 ```json
 {
-  "amount": 380,
-  "destinationAmount": 100,
-  "accountId": 1,
-  "toAccountId": 2,
-  "date": "2026-08-27",
-  "description": "Cambio de soles a dólares"
+  "frequency": "CUSTOM_DAYS",
+  "customDaysMode": "WEEK_DAYS",
+  "customDays": [1, 2, 3, 4, 5]
 }
 ```
 
-También se puede enviar `exchangeRate` en vez de `destinationAmount`. Para el
-ejemplo anterior sería `0.26315789`, porque son dólares recibidos por cada sol
-enviado.
+Valores permitidos: `1=Lun`, `2=Mar`, `3=Mié`, `4=Jue`, `5=Vie`, `6=Sáb`,
+`7=Dom`.
 
-Para una transferencia pendiente, al confirmar usar el formulario de monto
-real existente. Si las monedas son distintas, incluir igualmente
-`destinationAmount` o `exchangeRate` en:
+## Días específicos del mes
 
-```text
-POST /api/movements/:id/confirm
-```
-
-La respuesta de cualquier transferencia incluye:
-
-```text
-currency                    moneda enviada
-destinationCurrency         moneda recibida
-expectedAmount              monto previsto enviado
-actualAmount                monto real enviado
-destinationExpectedAmount   monto previsto recibido
-destinationActualAmount     monto real recibido
-exchangeRate                tipo de cambio aplicado
-```
-
-En el historial o detalle de una transferencia entre monedas, mostrar ambos
-importes, por ejemplo: **“Enviaste S/ 380.00 · Recibiste US$ 100.00”**, y el
-tipo de cambio. Al cancelar o eliminar, el backend revierte ambos saldos.
-
-No sumar ni comparar montos de monedas diferentes en una sola tarjeta. Mostrar
-cada saldo con su moneda; una conversión global a moneda base no existe todavía.
-
-# Configuración: preferencias de notificaciones
-
-En **Configuración > Notificaciones** mostrar únicamente tres interruptores
-reales. No mostrar por ahora opciones de correo ni noticias del producto,
-porque esas funciones no existen todavía.
-
-Al abrir esta sección consultar:
-
-```text
-GET /api/notifications/preferences
-Authorization: Bearer <token>
-```
-
-La respuesta es:
+Mostrar el calendario numérico del 1 al 31 para pagos que ocurren en fechas
+concretas. Por ejemplo, los días 3, 11, 18 y 27:
 
 ```json
 {
-  "preferences": {
-    "budgetAlertsEnabled": true,
-    "paymentRemindersEnabled": true,
-    "goalAlertsEnabled": true
-  }
+  "frequency": "CUSTOM_DAYS",
+  "customDaysMode": "MONTH_DAYS",
+  "customDays": [3, 11, 18, 27]
 }
 ```
 
-Interruptores y textos:
+Si se selecciona el día 31 y el mes no tiene 31 días, el backend usará el
+último día disponible de ese mes.
 
-- **Alertas de presupuesto**: “Te avisamos al 50 %, 80 % y cuando superes tu
-  presupuesto.” Usa `budgetAlertsEnabled`.
-- **Pagos y cobros próximos**: “Te recordamos pagos o cobros próximos y
-  vencidos.” Usa `paymentRemindersEnabled`.
-- **Avance de metas**: “Te avisamos si una meta se atrasa, vence o se completa.”
-  Usa `goalAlertsEnabled`.
+## Reglas de edición y visualización
 
-Todos vienen activos por defecto. Al cambiar uno, enviar solo ese campo:
+- Al crear, seleccionar una modalidad y al menos un día.
+- Al editar, conservar la modalidad actual y permitir cambiarla.
+- La regla se repite automáticamente en los meses futuros.
+- Editar la regla debe afectar solo ocurrencias futuras; no modificar el
+  historial ya registrado.
+- Mostrar en la tarjeta la próxima fecha calculada según la modalidad.
+- Mantener el bloqueo de una ocurrencia ya registrada para no duplicarla.
+- Permitir **Saltar pago** para una ocurrencia vencida o del día actual, sin
+  crear movimiento.
+- No permitir registrar una fecha futura.
+- Si el usuario cambia de “días de la semana” a “días del mes” (o viceversa),
+  reemplazar la selección anterior y enviar la nueva modalidad completa.
 
-```text
-PATCH /api/notifications/preferences
-Authorization: Bearer <token>
-```
+Para frecuencias que no sean `CUSTOM_DAYS`, enviar `customDays: []` y
+`customDaysMode: "MONTH_DAYS"`.
 
-Ejemplo:
+## Nombre de la fecha de inicio
 
-```json
-{
-  "paymentRemindersEnabled": false
-}
-```
-
-Esperar la respuesta antes de confirmar visualmente el interruptor; si falla,
-volver al valor anterior y mostrar el error. Después de guardar, volver a
-consultar `GET /api/notifications` para actualizar la insignia de la campana.
-
-Cuando un grupo está desactivado, sus avisos no aparecen ni cuentan en la
-campana. No se borran del historial: al reactivarlo, pueden mostrarse de nuevo
-si aún siguen vigentes.
-
-# Ajuste: rendimiento de una cuenta
-
-En el detalle de una cuenta, consultar como hasta ahora:
+En los formularios de **pagos recurrentes**, **pagos variables** y
+**suscripciones**, cambiar la etiqueta:
 
 ```text
-GET /api/accounts/:id?period=YYYY-MM
-Authorization: Bearer <token>
+Primera ocurrencia
 ```
 
-Usar `account.performance`. El backend ya calcula el **resultado esperado**
-sin adelantar ingresos que todavía no se han recibido:
+por:
 
 ```text
-resultado esperado = saldo inicial del mes
-                    - total de gastos esperados
-                    + ingresos realmente registrados
+Fecha de inicio de los pagos
 ```
 
-Por eso, no sumar `plannedIncome` al resultado esperado. Es solo un dato
-informativo de ingresos que se habían planeado, pero aún no existen como dinero
-real.
-
-Campos principales:
+Mostrar debajo la ayuda:
 
 ```text
-openingBalance          saldo con el que abrió el mes
-expectedExpense         total de gastos esperados del mes
-registeredIncome        ingresos confirmados que ya entraron a esta cuenta
-expectedResult          resultado esperado; es igual a expectedClosingBalance
-realResult              saldo real de la cuenta hasta el momento
-cushion                 realResult - expectedResult
-isAboveExpected         true si el saldo real está por encima de lo esperado
+El pago comenzará a generarse desde esta fecha.
 ```
 
-## Tarjeta de resumen
+Si el usuario está viendo agosto pero selecciona septiembre para preparar un
+pago, la fecha debe pertenecer a septiembre y nunca usar automáticamente la
+fecha actual de agosto. Para pagos variables, tanto el período seleccionado
+como la fecha de inicio deben pertenecer al mismo mes.
 
-- Mostrar **Monto inicial del mes** con `openingBalance`.
-- Mostrar **Resultado esperado** con `expectedResult`.
-- Mostrar claramente: “Ingresos registrados: … · Gastos esperados: …”.
-- Si `cushion` es positivo, mostrar **“+S/ … sobre lo esperado”** en verde.
-- Si es negativo, mostrar **“−S/ … bajo lo esperado”** en rojo.
-- Si vale cero, mostrar “Vas exactamente según lo esperado” en un color neutro.
+## Mostrar monto unitario y total del período
 
-## Gráfica «Rendimiento del mes»
+En cada tarjeta de pagos recurrentes, pagos variables y suscripciones mostrar
+por separado:
 
-Usar `performance.chart`; cada punto mensual incluye los mismos campos.
+- **Monto por ocurrencia**: usar `expectedAmount`. Es el valor que corresponde a
+  cada día, semana, fecha programada o renovación.
+- **Total esperado del período**: usar `periodExpectedAmount`. Es la suma del
+  monto unitario multiplicado por todas las ocurrencias del período seleccionado.
+- Mostrar también cuántas ocurrencias existen, usando `expectedConfirmations`.
 
-- Dibujar la línea **Esperado** con `expectedResult` o
-  `expectedClosingBalance`, en gris y punteada.
-- Dibujar la línea **Real** con `realResult` o `actualBalanceToDate`, en verde
-  continuo. Si está por debajo de la línea esperada, resaltar ese punto o tramo
-  en rojo.
-- La diferencia vertical entre ambas líneas representa el colchón: cuando la
-  línea real esté arriba hay dinero sobrante; cuando esté abajo se está por
-  debajo de lo esperado.
-- Convertir cada valor a un número seguro antes de dibujar. Para `null`,
-  `undefined`, valores no numéricos o `NaN`, usar `0`; nunca enviar `NaN` a SVG
-  ni a la librería de gráficos.
-- En el tooltip de cada punto mostrar saldo inicial, gastos esperados, ingresos
-  registrados, resultado esperado, saldo real y colchón.
+Ejemplo para pasajes laborales:
+
+```text
+Monto por día: S/ 2.60
+Total esperado de agosto: S/ 54.60
+21 fechas programadas
+```
+
+No mostrar únicamente `periodExpectedAmount` como si fuera el monto de un solo
+pago, porque puede confundir al usuario. El formulario de “Registrar pago” debe
+mostrar inicialmente `expectedAmount` como monto sugerido, pero permitir que el
+usuario ingrese el monto real de esa ocurrencia.
+
+Si la tarjeta tiene confirmaciones, mantener separados:
+
+```text
+Monto por ocurrencia: expectedAmount
+Total esperado: periodExpectedAmount
+Total registrado: periodActualAmount
+Diferencia: periodDifference
+```
+
+Adaptar las etiquetas según la frecuencia: “por día”, “por semana”, “por fecha”
+o “por renovación”. Para pagos variables, añadir “del mes seleccionado” y no
+mostrar totales de meses futuros.
+
+## Vista inicial de los módulos de pagos
+
+Esta regla aplica a **pagos recurrentes**, **pagos variables** y
+**suscripciones**:
+
+- Al entrar por primera vez a cualquiera de los tres módulos, seleccionar y
+  mostrar primero la pestaña **Pendientes**.
+- Consultar la API con la vista pendiente (`view=pending`) o usar la respuesta
+  pendiente predeterminada del backend.
+- No abrir inicialmente en “Todos”, “Finalizados”, “Confirmados”, “Pausados” ni
+  “Vencidos”, aunque existan registros en esos estados.
+- El usuario podrá cambiar manualmente a las demás pestañas después de entrar.
+- Si no hay pendientes, mantener seleccionada la pestaña “Pendientes” y mostrar
+  un estado vacío claro, sin cambiar automáticamente a otra pestaña.
+
+## Regla especial: pagos variables
+
+Para **pagos variables** usar las mismas dos modalidades de días personalizados:
+
+- Días de la semana: botones `Lun` a `Dom`.
+- Días específicos del mes: calendario del 1 al 31, en el orden del mes
+  seleccionado.
+
+Ejemplo: un pago variable de pasajes laborales creado para agosto con lunes a
+viernes solo genera ocurrencias de lunes a viernes **dentro de agosto**.
+
+- No copiarlo a septiembre ni a ningún mes futuro.
+- Al cambiar el selector global a septiembre, no mostrar la tarjeta creada para
+  agosto.
+- Para crear una tarjeta en septiembre, el usuario debe crearla desde septiembre
+  y volver a seleccionar los días que correspondan a ese mes.
+- La edición y el registro de ocurrencias solo afectan el mes de la tarjeta.
+- No mostrar fechas de otro mes, aunque se usen días de la semana.
+
+## Corrección: cumplimiento de la cuenta
+
+En el detalle de una cuenta, separar siempre la **proyección** del
+**cumplimiento real**.
+
+- El resultado esperado (`performance.expectedResult`) sigue siendo una
+  proyección: saldo inicial del mes - todos los gastos esperados + ingresos que
+  ya se registraron.
+- Para la tarjeta “Cumplimiento de [mes]” y la gráfica de cumplimiento, usar
+  `performance.complianceAmount`. Como compatibilidad también está disponible
+  como `performance.cushion`.
+- **No** calcular el cumplimiento restando el saldo real menos el resultado
+  esperado. Ese cálculo hace parecer positivo un gasto que sólo fue planificado
+  y todavía no se pagó.
+
+Comportamiento visual:
+
+- Sin pagos confirmados: mostrar `S/ 0.00`, estado neutro/amarillo y texto
+  “Aún no hay pagos confirmados”.
+- Pago confirmado exactamente por el monto esperado: `S/ 0.00`, estado
+  neutro/amarillo y texto “Vas según lo esperado”.
+- Para un gasto, pagar menos de lo esperado produce un valor positivo y color
+  verde; pagar más produce un valor negativo y color rojo.
+- Para un ingreso, el backend ya aplica la regla inversa: recibir más es verde
+  y recibir menos es rojo.
+- Usar `performance.isOnTarget` para el caso cero e `isAboveExpected` sólo para
+  el caso positivo.
+
+La proyección puede incluir gastos pendientes; el cumplimiento nunca los debe
+contar hasta que estén confirmados.
+
+## Corrección visual: panel de notificaciones
+
+Ampliar el panel desplegable de notificaciones del encabezado a un ancho
+aproximado de **380 a 420 px** en escritorio. El objetivo es que cada aviso se
+entienda sin texto excesivamente comprimido.
+
+- El título, descripción y fecha deben aprovechar el ancho disponible antes de
+  pasar a otra línea.
+- El monto y el botón para cerrar/eliminar una notificación no deben invadir ni
+  reducir el texto principal.
+- Mantener una altura mínima uniforme por notificación, con separación clara
+  entre avisos.
+- El control “Marcar todas como leídas” debe tener espacio suficiente para
+  mostrarse completo y ser fácil de pulsar.
+- Conservar un ancho adaptable en pantallas pequeñas: no provocar desborde
+  horizontal y usar márgenes laterales seguros.
+
+## Pendientes incluye pagos vencidos
+
+Esta regla aplica a **pagos recurrentes**, **pagos variables** y
+**suscripciones**.
+
+Al abrir la pestaña **Pendientes**, consultar `view=pending`. Ahora la API
+devuelve juntos los pagos próximos y los vencidos, porque ambos requieren una
+acción del usuario. La respuesta los entrega con los vencidos primero.
+
+- En la misma pestaña, crear primero la sección **“Vencidos (N)”** con estilo
+  de alerta y acciones para registrar o saltar cada pago.
+- Debajo, mostrar **“Próximos pendientes (N)”** con los pagos aún no vencidos.
+- Seguir mostrando la pestaña **Vencidos** como filtro independiente, para ver
+  sólo los atrasados cuando el usuario lo necesite.
+- El contador de la pestaña Pendientes es `counts.pending` e incluye vencidos.
+  Para el contador de próximos usar `counts.pendingUpcoming`.
+- Si `counts.pending` es cero, mostrar el estado vacío de pendientes. No cambiar
+  automáticamente a otra pestaña.
