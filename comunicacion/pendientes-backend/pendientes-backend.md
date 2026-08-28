@@ -115,13 +115,23 @@ Paso intermedio barato si no quieren meter cron todavia: un `lastSyncedAt` por u
 
 No bloqueante para empezar a integrar notificaciones en el frontend ahora mismo (funciona correctamente con el volumen actual), pero conviene resolverlo antes de que el sistema reciba trafico real de SaaS.
 
-## Bug menor: GET /api/dashboard - emptyState.hasBudget siempre da false
+## Resuelto: GET /api/dashboard - emptyState.hasBudget siempre daba false
 
-Reproducido integrando el nuevo endpoint en el frontend. `dashboard.service.js` calcula `emptyState.hasBudget` como `report.budget?.general?.limitAmount != null`, pero `report.budget` (reusa el shape de `getReport`) no tiene una propiedad `.general` — `limitAmount` esta directo en la raiz (`report.budget.limitAmount`). Esa expresion siempre da `undefined != null` -> `false`, aunque el usuario tenga un presupuesto real configurado con limite.
+Corregido en PR #25 exactamente como se sugirio: `report.budget?.general?.limitAmount != null` -> `report.budget?.limitAmount != null`. El frontend ya dejo de usar el workaround local y consume el flag real.
 
-No bloqueante: el frontend ya lo esquiva derivando el flag localmente (`data.budget && data.budget.limitAmount !== null`, mismo patron que ya usa Reportes), asi que la card de presupuesto del dashboard funciona bien. Pero el campo `emptyState.hasBudget` en si mismo esta mal y cualquier otro consumidor futuro de este endpoint que confie en el va a fallar igual.
+## Bug: notificaciones quedan huerfanas cuando se borra su entidad origen
 
-Arreglo sugerido: en `dashboard.service.js`, cambiar `report.budget?.general?.limitAmount != null` por `report.budget?.limitAmount != null`.
+Reproducido en vivo: se creo un movimiento de prueba (`Movement id 25`), el backend genero su notificacion `PAYMENT_DUE` (`sourceModule: "movements", sourceId: 25`) al listar `/notifications`. Se borro el movimiento (`DELETE`/script), pero la fila en `Notification` nunca se elimino ni se marco como invalida — quedo huerfana para siempre, apuntando a un `sourceId` que ya no existe, y siguio apareciendo en la campana (titulo/monto congelados desde la ultima sincronizacion) hasta que se borro a mano directo en la base.
+
+Mismo problema aplica a cualquier entidad que genera notificacion y luego se borra/cancela: pagos recurrentes, variables, suscripciones, metas eliminadas. `synchronizeNotifications` solo crea o actualiza (`createOrRefreshNotification`), nunca borra una notificacion cuya entidad origen desaparecio.
+
+Pedido: cuando se borra (o cancela) la entidad que origino una notificacion (`Movement`, `RecurringPayment`, `VariablePayment`, `Subscription`, `Goal`), borrar tambien las filas de `Notification` con ese `sourceModule`+`sourceId` (o, si se prefiere mantener historial, marcarlas invalidas/expiradas en vez de seguir mostrandolas). No bloqueante para uso normal (rara vez se borra algo con notificacion activa), pero se noto en vivo integrando la campana.
+
+## Pedido: endpoint para eliminar/descartar una notificacion individual
+
+Hoy `notifications.routes.js` solo tiene `GET /`, `GET/PATCH /preferences`, `PATCH /:id/read`, `PATCH /read-all` — no hay forma de que el usuario saque una notificacion puntual de la lista sin que sea "no leida". El frontend quiere ofrecer un boton "x" (o gesto de deslizar) para descartar una card individual de la campana.
+
+Pedido: `DELETE /api/notifications/:id` (borra o marca como descartada esa notificacion puntual del usuario autenticado, 404 si no existe o no es suya). Mientras no exista, el frontend va a implementar "descartar" como un alias de "marcar como leida" + ocultarla de la vista (la campana solo listara no-leidas) — es honesto con lo que el backend ofrece hoy, pero no es un borrado real; cuando este el endpoint, cambiamos a un borrado de verdad.
 
 ## Pendiente principal
 
