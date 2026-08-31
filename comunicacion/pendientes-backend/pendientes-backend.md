@@ -159,3 +159,39 @@ El objeto se devolvera directamente, sin envoltorio `{ summary }`, cuando sus de
 1. Definir si inactivar la cuenta principal debe bloquearse o reasignar otra automaticamente.
 2. Definir el uso final o retiro de `expectedMonthlyAmount`.
 3. Mantener `monthlyPlan` solamente en `/accounts/:id/summary` para evitar duplicar logica.
+
+## Pedido: cantidad de ocurrencias por dia (`customDayCounts`) — migracion rota, bloquea todo
+
+Producto quiere que, al elegir un dia especifico dentro de `CUSTOM_DAYS` (Recurrentes y Variables — no aplica a Suscripciones, una suscripcion es un solo servicio con un ciclo fijo, no tiene sentido "3 Netflix el mismo dia"), el usuario pueda indicar cuantas veces se repite ese pago ese mismo dia (ej. "sabado 8 con cantidad 3" = 3 pagos independientes, cada uno registrable/saltable por separado, con progreso tipo "1 de 3 registrados").
+
+**Actualizacion 2 (la mas reciente)**: el commit `ca0a405 contador` ya escribio la capa de aplicacion completa — schemas Zod (`customDayCounts`/`occurrenceNumber` en ambos modulos), `occurrenceLimitForDate` + expansion de slots pendientes en `service.js`, `register`/`skip`/`undoSkip` ya validan y usan `occurrenceNumber` (via query param `?occurrenceNumber=` en el DELETE, via body en los POST). El codigo en si esta bien — usan `findFirst` con where plano en vez de `findUnique` con compound key, asi que no dependen del nombre exacto del constraint. Buen trabajo ahi.
+
+**Pero la migracion `20260828110000_add_custom_day_occurrences` esta rota y nunca se aplico de verdad.** Al correr `npx prisma migrate deploy` (recien, en este ambiente local) fallo a la mitad:
+
+```
+ERROR: constraint "RecurringConfirmation_recurringPaymentId_occurrenceDate_key" of relation "RecurringConfirmation" does not exist
+```
+
+Las 4 lineas de `ADD COLUMN` (`customDayCounts` x2, `occurrenceNumber` x2) **si corrieron** — confirmado directo contra Postgres, las columnas existen. Pero el `DROP CONSTRAINT "RecurringConfirmation_recurringPaymentId_occurrenceDate_key"` que sigue **fallo y ahi se corto todo**.
+
+**Causa raiz**: ese objeto existe en la base como **indice unico** (`CREATE UNIQUE INDEX`, asi lo genero Prisma en la migracion original de creacion de la tabla), no como **constraint** (`ADD CONSTRAINT`). Son objetos distintos en Postgres — `DROP CONSTRAINT` no encuentra un indice suelto, hace falta `DROP INDEX`. Mismo problema espera en `VariableConfirmation`.
+
+**Estado en el que queda la base ahora mismo** (no se toco nada mas despues de esto):
+
+- Prisma marca esta migracion como **"failed"** — bloquea `migrate dev`/`migrate deploy` de cualquier otra migracion hasta que alguien la resuelva con `prisma migrate resolve --rolled-back "20260828110000_add_custom_day_occurrences"` (lo mas correcto, ya que el rename del constraint nunca se completo) o el codigo nuevo se ajusta y se corre de nuevo.
+- El indice unico VIEJO de 2 campos sigue activo (el `DROP` fallo, nunca se borro) — el constraint nuevo de 3 campos nunca se creo. Si alguien intenta registrar una 2da ocurrencia el mismo dia ahora mismo con el codigo nuevo: la validacion propia (`findFirst`) no encuentra duplicado y deja pasar, pero el `INSERT` choca contra el indice viejo y tira un 500 crudo de Postgres en vez del 409 esperado.
+- El cliente Prisma tampoco se regenero todavia (`npx prisma generate` pendiente, no lo corri porque la base quedo en un estado intermedio raro).
+
+**Arreglo necesario**: nueva migracion correctiva que reemplace las 2 lineas de `DROP CONSTRAINT` (Recurring y Variable) por `DROP INDEX IF EXISTS "..."`. Despues: `prisma migrate resolve --rolled-back` para destrabar el historial, `migrate deploy` de nuevo, y `prisma generate`. Recien ahi se puede probar el feature de verdad.
+
+No bloqueante para lo que ya esta en produccion (dias personalizados con cantidad 1 implicita sigue funcionando exactamente igual, esto solo bloquea migraciones nuevas en los ambientes que ya intentaron aplicar esta). El frontend sigue sin mandar `customDayCounts` — esperando a que esto se resuelva.
+
+## Pedido: que los movimientos manuales (gasto/ingreso "hormiga") afecten el cumplimiento de la cuenta
+
+Hoy `complianceByPeriodForAccount` (`accounts.service.js`) solo suma `RecurringConfirmation` + `VariableConfirmation` + `SubscriptionPayment` con `resolutionStatus:"REGISTERED"` — nunca toca la tabla `Movement`. Un gasto o ingreso manual (el que crea el formulario de "Nuevo gasto/ingreso hormiga", `sourceType:"MANUAL"`) hoy **no mueve `complianceAmount`/`cushion` para nada**, aunque se confirme.
+
+Producto quiere que si lo haga: un gasto manual confirmado debe bajar el cumplimiento por su monto real completo; un ingreso manual confirmado debe subirlo por su monto real completo. A diferencia de los otros 3 origenes (que comparan contra un monto esperado previo via `difference`), un movimiento manual no tiene "plan" previo — no hay una diferencia que calcular, es el monto real completo el que mueve la aguja.
+
+Propuesta concreta: sumar al mismo calculo de `complianceByPeriodForAccount` los `Movement` con `type IN (INCOME, EXPENSE)`, `sourceType:"MANUAL"`, `status:"CONFIRMED"`, `deletedAt: null`, dentro del rango de `occurredOn` del periodo — sumando `actualAmount` para INCOME y restandolo para EXPENSE.
+
+No bloqueante — el frontend ya avisa en el formulario que estos movimientos "no pertenecen a pagos recurrentes/variables/suscripciones" pero deliberadamente **no** promete que afecten el cumplimiento todavia, justamente porque hoy no es cierto.
