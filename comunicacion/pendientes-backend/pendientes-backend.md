@@ -160,7 +160,11 @@ El objeto se devolvera directamente, sin envoltorio `{ summary }`, cuando sus de
 2. Definir el uso final o retiro de `expectedMonthlyAmount`.
 3. Mantener `monthlyPlan` solamente en `/accounts/:id/summary` para evitar duplicar logica.
 
-## Pedido: cantidad de ocurrencias por dia (`customDayCounts`) — migracion rota, bloquea todo
+## Resuelto: cantidad de ocurrencias por dia (`customDayCounts`)
+
+Migracion corregida (`DROP INDEX IF EXISTS` en vez de `DROP CONSTRAINT`, todo idempotente) y aplicada. Probado en vivo end-to-end contra un pago recurrente real: `customDayCounts: {"27": 3}` crea 3 ocurrencias independientes el mismo dia, cada una se registra por separado con su `occurrenceNumber`, `occurrenceProgress` en la respuesta refleja `resolvedCount`/`pendingCount` en tiempo real, la 4ta ocurrencia se rechaza con 409 limpio ("La cantidad configurada para esta fecha ya fue completada"), y al completar las 3 el pago pasa a `viewStatus: FINISHED`. Sin hallazgos nuevos — el frontend ya puede consumir esto.
+
+## [Detalle historico, ya resuelto] Pedido: cantidad de ocurrencias por dia (`customDayCounts`) — migracion rota, bloquea todo
 
 Producto quiere que, al elegir un dia especifico dentro de `CUSTOM_DAYS` (Recurrentes y Variables — no aplica a Suscripciones, una suscripcion es un solo servicio con un ciclo fijo, no tiene sentido "3 Netflix el mismo dia"), el usuario pueda indicar cuantas veces se repite ese pago ese mismo dia (ej. "sabado 8 con cantidad 3" = 3 pagos independientes, cada uno registrable/saltable por separado, con progreso tipo "1 de 3 registrados").
 
@@ -186,7 +190,11 @@ Las 4 lineas de `ADD COLUMN` (`customDayCounts` x2, `occurrenceNumber` x2) **si 
 
 No bloqueante para lo que ya esta en produccion (dias personalizados con cantidad 1 implicita sigue funcionando exactamente igual, esto solo bloquea migraciones nuevas en los ambientes que ya intentaron aplicar esta). El frontend sigue sin mandar `customDayCounts` — esperando a que esto se resuelva.
 
-## Pedido: que los movimientos manuales (gasto/ingreso "hormiga") afecten el cumplimiento de la cuenta
+## Resuelto: los movimientos manuales (gasto/ingreso "hormiga") ya afectan el cumplimiento de la cuenta
+
+Verificado en `accounts.service.js` (2026-10-01): `complianceAmount` ya suma `manualChange` (movimientos MANUAL, sin transferencias). Detalle histórico abajo.
+
+### [Detalle histórico]
 
 Hoy `complianceByPeriodForAccount` (`accounts.service.js`) solo suma `RecurringConfirmation` + `VariableConfirmation` + `SubscriptionPayment` con `resolutionStatus:"REGISTERED"` — nunca toca la tabla `Movement`. Un gasto o ingreso manual (el que crea el formulario de "Nuevo gasto/ingreso hormiga", `sourceType:"MANUAL"`) hoy **no mueve `complianceAmount`/`cushion` para nada**, aunque se confirme.
 
@@ -195,3 +203,88 @@ Producto quiere que si lo haga: un gasto manual confirmado debe bajar el cumplim
 Propuesta concreta: sumar al mismo calculo de `complianceByPeriodForAccount` los `Movement` con `type IN (INCOME, EXPENSE)`, `sourceType:"MANUAL"`, `status:"CONFIRMED"`, `deletedAt: null`, dentro del rango de `occurredOn` del periodo — sumando `actualAmount` para INCOME y restandolo para EXPENSE.
 
 No bloqueante — el frontend ya avisa en el formulario que estos movimientos "no pertenecen a pagos recurrentes/variables/suscripciones" pero deliberadamente **no** promete que afecten el cumplimiento todavia, justamente porque hoy no es cierto.
+
+## Resuelto: "Resetear mis datos" no borra las notificaciones
+
+Verificado por código: `tx.notification.deleteMany({ where: { userId } })` agregado dentro de la misma transacción de `resetOwnFinancialData`, justo antes del `tx.account.deleteMany(...)`, exacto como se pidió. No se probó en vivo (ejecutar el reset borraría cuentas/categorías/todo del usuario real, no solo notificaciones) — la revisión de código alcanza, es un cambio de una línea sin ambigüedad.
+
+## [Detalle histórico, ya resuelto] Bug: "Resetear mis datos" no borra las notificaciones
+
+Usuario reporta: reseteo sus datos desde la config de la cuenta y las notificaciones del historial anterior siguen apareciendo (capturas de pantalla mostrando cobros/pagos vencidos de pagos recurrentes que ya no existen).
+
+**Confirmado leyendo el codigo**: `resetOwnFinancialData` en `src/modules/users/users.service.js:90-179` borra, dentro de la misma transaccion, TODAS las tablas financieras del usuario (`debtPayment`, `debtInstallment`, `loanCollection`, `loanInstallment`, `recurringConfirmation`, `variableConfirmation`, `subscriptionPayment`, `goalContribution`, `recurringPayment`, `variablePayment`, `subscription`, `goal`, `debt`, `loan`, `movement`, `categoryBudget`, `monthlyBudget`, `subcategory`, `category`, `categoryTemplate`, `categoryPeriod`, `account`) pero **nunca** llama `tx.notification.deleteMany({ where: { userId } })`. El modelo `Notification` (`prisma/schema.prisma:189-212`) tiene `userId` directo, sin ninguna dependencia de las tablas que si se borran (no hay FK entre ambos), asi que no se borra en cascada tampoco.
+
+**Fix exacto**: agregar una linea dentro de la transaccion de `resetOwnFinancialData` (`src/modules/users/users.service.js`, antes de la linea 175 `await tx.account.deleteMany(...)` o en cualquier punto de la transaccion, el orden no importa ya que Notification no tiene FK hacia estas tablas):
+
+```js
+await tx.notification.deleteMany({ where: { userId } });
+```
+
+No bloqueante para nada mas, pero rompe la promesa de "reset de fabrica" — el usuario ve notificaciones de pagos/cobros que ya no existen despues de resetear.
+
+## Bug: `expectedDebtPayments`/`expectedLoanCollections` quedan en 0 para deudas/prestamos sin plan de cuotas
+
+Contrato original (ya implementado y verificado en vivo por el frontend): `account.performance` debe incluir en `expectedDebtPayments`/`expectedLoanCollections` **todas** las cuotas de deuda/cobros de prestamo pendientes con vencimiento dentro del periodo, asignadas a esa cuenta — confirmadas o no, ya que "pueden ser pagadas en cualquier momento".
+
+**Confirmado leyendo el codigo**: `debtAndLoanTotalsForAccount` (`src/modules/accounts/accounts.service.js:76-111`) solo lee de `prisma.debtInstallment`/`prisma.loanInstallment` — filas que solo se generan si la deuda/prestamo tiene plan de cuotas real (`hasInstallmentPlan(monthlyInterestRate, installment)` en `src/utils/installments.js:17`, exige `monthlyInterestRate > 0 || installment > 0`). Una deuda o prestamo simple — sin cuota mensual configurada, solo con `nextDueDate`/`dueDate` y un `balance`/`outstanding` total (el caso comun de "fulano me debe X, vence tal fecha", sin desglose de cuotas) **nunca genera esas filas** via `syncDebtInstallments`/el equivalente de loans. Resultado: `expectedDebtPayments`/`expectedLoanCollections` quedan en 0 permanentemente para esos registros, sin importar que tan cerca este el vencimiento, aunque el usuario los vea claramente listados como pendientes en `/deudas` y `/prestamos`.
+
+Verificado con datos TEST reales: una deuda/prestamo creados CON `installment > 0` si generan la fila de instalment y si cuentan correctamente en la proyeccion (frontend ya listo y probado para este caso). El problema es especificamente el caso sin plan de cuotas.
+
+**Fix propuesto**: en `debtAndLoanTotalsForAccount`, ademas de sumar `debtInstallment`/`loanInstallment` como ya hace, sumar tambien las deudas/prestamos ACTIVOS de esa cuenta que **no tengan plan de cuotas** (`monthlyInterestRate = 0 AND installment = 0`) cuyo `nextDueDate`/`dueDate` caiga dentro del periodo — usando su `balance`/`outstanding` completo como el monto pendiente de ese mes:
+
+```js
+const [lumpSumDebts, lumpSumLoans] = await Promise.all([
+    prisma.debt.findMany({
+        where: {
+            userId, paymentAccountId: accountId, status: "ACTIVE", deletedAt: null,
+            monthlyInterestRate: 0, installment: 0,
+            nextDueDate: { gte: start, lte: end },
+        },
+        select: { balance: true },
+    }),
+    prisma.loan.findMany({
+        where: {
+            userId, status: "ACTIVE", deletedAt: null,
+            monthlyInterestRate: 0, installment: 0,
+            OR: [{ returnAccountId: accountId }, { returnAccountId: null, sourceAccountId: accountId }],
+            dueDate: { gte: start, lte: end },
+        },
+        select: { outstanding: true },
+    }),
+]);
+const lumpSumDebtTotal = lumpSumDebts.reduce((sum, d) => sum + Number(d.balance), 0);
+const lumpSumLoanTotal = lumpSumLoans.reduce((sum, l) => sum + Number(l.outstanding), 0);
+return {
+    expectedDebtPayments: roundMoney(remaining(debtInstallments) + lumpSumDebtTotal),
+    expectedLoanCollections: roundMoney(remaining(loanInstallments) + lumpSumLoanTotal),
+};
+```
+
+No toca nada del frontend — `AccountDetailPage.tsx` ya lee `performance.expectedDebtPayments`/`performance.expectedLoanCollections` tal cual vienen y los muestra en el desglose de "Resultado esperado" (oculta la linea si el valor es 0). En cuanto el backend los llene correctamente para deudas/prestamos sin plan de cuotas, aparecen solos, sin ningun cambio adicional de UI.
+
+## Resuelto (2026-10-31, corregido desde frontend con permiso): editar el monto de un pago recurrente no se reflejaba si existía una versión de horario con fecha posterior
+
+Fix aplicado en `updateRecurringPayment`: `deleteMany` de versiones con `effectiveFrom > effectiveFrom` antes del `upsert`. Test: `tests/recurring-payments.update-versions.test.js`.
+
+Reproducido con datos reales (2026-10-31): "SUELDO CONFLUX" (id 36), monto 1329.45 → editado a 1329.40. `PATCH` responde OK y `RecurringPayment.expectedAmount` queda en 1329.40, pero la tarjeta, el monto del periodo y la proyección siguen mostrando 1329.45.
+
+Estado en la base después de guardar:
+
+| `RecurringScheduleVersion` | `effectiveFrom` | `scheduleStartDate` | `expectedAmount` |
+|---|---|---|---|
+| id 5 (creada por la edición) | 2026-10-01 | 2026-10-31 | 1329.40 |
+| id 1 (versión original) | 2026-10-31 | 2026-10-31 | 1329.45 |
+
+Causa raíz (`src/utils/recurring-schedule.js`, `scheduleForDate`): para una fecha toma la versión con el `effectiveFrom` más reciente que sea `<=` esa fecha. Para la ocurrencia del 31-oct (y todas las siguientes), la versión 1 (31-oct) le gana a la versión 5 (1-oct). La edición queda "tapada" por una versión anterior que tiene fecha efectiva posterior.
+
+En `updateRecurringPayment` (`src/modules/recurring-payments/recurring-payments.service.js`, bloque `if (scheduleChanged)`), el `upsert` crea la versión en `effectiveFrom` (inicio del periodo editado, `${period}-01`) pero no toca las versiones con `effectiveFrom` mayor. Pasa cada vez que la versión original se creó con `effectiveFrom = startDate` a mitad de mes (create sin `effectiveFrom`, o backfill de la migración `20261030010000_recurring_schedule_versions` usando `scheduleAnchorDate`).
+
+Fix propuesto: una edición aplica "desde este periodo en adelante", así que antes del `upsert` borrar las versiones posteriores:
+
+```js
+await tx.recurringScheduleVersion.deleteMany({
+    where: { recurringPaymentId: id, effectiveFrom: { gt: effectiveFrom } },
+});
+```
+
+El frontend no necesita cambios: ya manda `expectedAmount`, `startDate` y `effectiveFrom: "${period}-01"`, y muestra el monto que devuelve el backend.
